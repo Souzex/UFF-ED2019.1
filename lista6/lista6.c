@@ -153,6 +153,10 @@ int main() {
 
     minha_pilha = f2p (minha_fila);
 
+    printf("Fila (INPUT) da questão (a): ");
+    imprime_lista (minha_fila->ini);
+    printf("\n");     
+
     printf("Pilha (OUTPUT) da questão (a): ");
     imprime_lista (minha_pilha->prim);
     printf("\n");
@@ -176,6 +180,10 @@ int main() {
 
     minha_fila2 = inv_fila (minha_fila1);
 
+    printf("Fila (INPUT) da questão (b): ");
+    imprime_lista (minha_fila1->ini);
+    printf("\n");    
+
     printf("Fila (OUTPUT) da questão (b): ");
     imprime_lista (minha_fila2->ini);
     printf("\n");
@@ -198,6 +206,10 @@ int main() {
     printf("\n");    
 
     minha_fila2 = sep_fila (minha_fila1);
+
+    printf("Fila (INPUT) da questão (c): ");
+    imprime_lista (minha_fila1->ini);
+    printf("\n"); 
 
     printf("Fila dos PARES (OUTPUT) da questão (c): ");
     imprime_lista (minha_fila2->ini);
@@ -230,6 +242,14 @@ int main() {
     printf("\n");    
 
     minha_fila = junta_filas (minha_fila1, minha_fila2);
+
+    printf("Fila 1 (INPUT) da questão (d): ");
+    imprime_lista (minha_fila1->ini);
+    printf("\n");    
+
+    printf("Fila 2 (INPUT) da questão (d): ");
+    imprime_lista (minha_fila2->ini);
+    printf("\n");     
 
     printf("Fila com as duas filas (OUTPUT) da questão (d): ");
     imprime_lista (minha_fila->ini);
@@ -274,6 +294,10 @@ int main() {
     printf("\n");    
 
     minha_fila = p2f (minha_pilha);
+
+    printf("Pilha (INPUT) da questão (f): ");
+    imprime_lista (minha_pilha->prim);
+    printf("\n");    
 
     printf("Fila (OUTPUT) da questão (f): ");
     imprime_lista (minha_fila->ini);
@@ -328,6 +352,7 @@ int main() {
 
 TPilha* f2p (TFila *f) {
 
+/*
     TPilha *p = inicializa_TPilha();
     TPilha *p_aux = inicializa_TPilha();
     
@@ -342,10 +367,27 @@ TPilha* f2p (TFila *f) {
     libera_TPilha (p_aux);
 
     return p;
+*/
+    TPilha *p = inicializa_TPilha();
+    TPilha *p_aux = inicializa_TPilha();
+    
+    TNO *no = f->ini;
+
+    while (no) {
+        push(p_aux, no->info);
+        no = no->prox;
+    }
+
+    while (!vazia_TPilha(p_aux))        
+        push(p, pop(p_aux));
+
+    libera_TPilha (p_aux);
+
+    return p;
 }
 
 TFila* inv_fila (TFila *f) {
-
+/*
     TPilha *p = inicializa_TPilha();
     TFila *f_aux = inicializa_TFila();
 
@@ -360,6 +402,23 @@ TFila* inv_fila (TFila *f) {
     libera_TPilha (p);
 
     return f_aux;    
+*/
+    TPilha *p = inicializa_TPilha();
+    TFila *f_aux = inicializa_TFila();
+
+    TNO *no = f->ini;
+
+    while (no) {
+        push(p, no->info);
+        no = no->prox;
+    }
+
+    while (!vazia_TPilha(p))        
+        insere(f_aux, pop(p));
+
+    libera_TPilha (p);
+
+    return f_aux;  
 }
 
 TFila* sep_fila (TFila *f) {
@@ -381,7 +440,7 @@ TFila* sep_fila (TFila *f) {
 }
 
 TFila* junta_filas (TFila *f1, TFila *f2) {
-
+/*
     TFila *f = inicializa_TFila();
     
     while (f1->ini) {
@@ -392,6 +451,23 @@ TFila* junta_filas (TFila *f1, TFila *f2) {
     while (f2->ini) {
         insere(f, f2->ini->info);
         f2->ini = f2->ini->prox;
+    }    
+
+    return f;
+*/    
+
+    TFila *f = inicializa_TFila();
+    
+    TNO *no = f1->ini;
+    while (no) {
+        insere(f, no->info);
+        no = no->prox;
+    }
+
+    no = f2->ini;
+    while (no) {
+        insere(f, no->info);
+        no = no->prox;
     }    
 
     return f;
@@ -413,12 +489,23 @@ void retira_pares (TPilha *p) {
 }
 
 TFila* p2f (TPilha *p) {
-
+/*
     TFila *f = inicializa_TFila();
     
     while (p->prim) {
         insere(f, p->prim->info);
         p->prim = p->prim->prox;
+    }
+
+    return f;
+*/
+    TFila *f = inicializa_TFila();
+
+    TNO *no = p->prim;
+    
+    while (no) {
+        insere(f, no->info);
+        no = no->prox;
     }
 
     return f;
