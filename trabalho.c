@@ -671,7 +671,7 @@ int iniciar_menu (TAG **end_arv_g) {
 	int i;
 	int cod, cod_pai, cod_herd, tp_fig;
 	float *medidas;
-	system("cls");
+	//system("cls");
 	printf("Escolha uma das opções abaixo:\n\n");
 	printf("a - Buscar figuras geométricas, por meio de um código único.\n");
     printf("b - Imprimir informações relevantes, tanto da árvore, quanto das figuras, incluindo-se sua área.\n");
@@ -694,7 +694,7 @@ int iniciar_menu (TAG **end_arv_g) {
 				imprimir_info_figura (result, buscar_figura_pai (cod, arv_g, NULL));
 			else
 				printf("Não existe uma figura/nó com o código informado!");
-            system("pause");
+            //system("pause");
             break;
         
 		case 'b':
@@ -716,7 +716,7 @@ int iniciar_menu (TAG **end_arv_g) {
 					printf("Não existe uma figura/nó com o código informado!");
 			} else 
 				imprimir_info_subarv_verbose (arv_g);
-			system("pause");
+			//system("pause");
             break;		
 		
 		case 'c':
@@ -797,7 +797,8 @@ int iniciar_menu (TAG **end_arv_g) {
 			} else {
 				printf("Problemas na inserção da figura! Consulte o suporte.\n");
 			}
-			system("pause");
+			free (medidas);
+			//system("pause");
             break;
 		
 		case 'd':
@@ -828,7 +829,7 @@ int iniciar_menu (TAG **end_arv_g) {
 			}
 			retirar_figura (arv_g, cod, cod_herd);
 			imprimir_info_subarv_simples (arv_g);
-			system("pause");
+			//system("pause");
             break;;
 		
 		case 'e':
@@ -847,7 +848,7 @@ int iniciar_menu (TAG **end_arv_g) {
 					printf("Opção inválida!");
 				}
 			}		
-			system("pause");
+			//system("pause");
             break;
 		
 		case 'f':
@@ -906,36 +907,34 @@ int iniciar_menu (TAG **end_arv_g) {
 					break;
 				}
 			}
-			system("pause");
+			//system("pause");
             break;
 		
 		case 'g':
 			destruir_abb (arv_bb);
 			arv_bb = converter_abb (arv_g);
 			imprimir_abb (arv_bb);
-			system("pause");
+			//system("pause");
             break;
 		
 		case 'h':
 			destruir_aB (arv_B);
 			arv_B = converter_aB (arv_g);
 			imprimir_aB (arv_B);
-			system("pause");
+			//system("pause");
             break;
 		
 		case '0':
 			resp_usu = 0;
 			printf ("Até mais!\n");
-			system("pause");
+			//system("pause");
             break;
 		
 		default:
 			printf("Opção inválida!\n");
-            system("pause");
+            //system("pause");
             break;
 	}
-	
-	free (medidas);
 	
 	return resp_usu;
 }
@@ -1007,6 +1006,7 @@ void imprimir_info_figura (TAG *ag, TAG *ag_pai) {
 	}
 	
 	if (!ag_pai) {
+		printf ("*** Irmãos ***\n");
 		printf ("RAIZ! Não possui irmãos!\n");
 	} else {
 	
@@ -1015,8 +1015,8 @@ void imprimir_info_figura (TAG *ag, TAG *ag_pai) {
 		area_parent = 0.0;
 		
 		aux = ag_pai->filho;
-		if (aux->irmao) printf ("*** Irmãos ***\n");
-		else printf ("Não possui irmãos!\n");
+		printf ("*** Irmãos ***\n");
+		if (!aux->irmao) printf ("Não possui irmãos!\n");
 		
 		if (aux->irmao) {
 			while (aux) {
@@ -1044,8 +1044,8 @@ void imprimir_info_figura (TAG *ag, TAG *ag_pai) {
 	area_parent = 0.0;
 	
 	aux = ag->filho;
-	if (aux) printf ("*** Filhos ***\n");
-	else printf ("Não possui filhos!\n");
+	printf ("*** Filhos ***\n");
+	if (!aux) printf ("Não possui filhos!\n");
 	
 	if (aux) {
 		while (aux) {
@@ -1241,28 +1241,34 @@ void imprimir_info_subarv (TAG *ag, int *num_nodes, float *area_tot, int **num_f
 
 TAG * inserir_figura (TAG *ag, int cod, int cod_pai, int tp_f, float *med) {
 	
+	int i;
+	char nome_f[4]; nome_f[3] = '\0';
 	float area = 0.0;
 	void *no_info_v = NULL;
 	if (tp_f == RET) {
 		TRET *no_info = (TRET *) malloc(sizeof(TRET));			
 		no_info->largura     = med[0];			
-		no_info->comprimento = med[1];			
+		no_info->comprimento = med[1];
+		nome_f[0] = 'R'; nome_f[1] = 'E'; nome_f[2] = 'T';
 		area = no_info->largura * no_info->comprimento;			
 		no_info_v = no_info;			
 	} else if (tp_f == QUA) {			
 		TQUA *no_info = (TQUA *) malloc(sizeof(TQUA));			
-		no_info->lado = med[0];			
+		no_info->lado = med[0];
+		nome_f[0] = 'Q'; nome_f[1] = 'U'; nome_f[2] = 'A';			
 		area = no_info->lado * no_info->lado;			
 		no_info_v = no_info;			
 	} else if (tp_f == CIR) {			
 		TCIR *no_info = (TCIR *) malloc(sizeof(TCIR));			
 		no_info->raio = med[0];			
+		nome_f[0] = 'C'; nome_f[1] = 'I'; nome_f[2] = 'R';
 		area = no_info->raio * no_info->raio*PI/2;			
 		no_info_v = no_info;			
 	} else if (tp_f == TRI) {			
 		TTRI *no_info = (TTRI *) malloc(sizeof(TTRI));			
 		no_info->base   = med[0];			
 		no_info->altura = med[1];			
+		nome_f[0] = 'T'; nome_f[1] = 'R'; nome_f[2] = 'I';
 		area = no_info->base * no_info->altura/2;			
 		no_info_v = no_info;			
 	} else if (tp_f == TRA) {			
@@ -1270,12 +1276,14 @@ TAG * inserir_figura (TAG *ag, int cod, int cod_pai, int tp_f, float *med) {
 		no_info->base1  = med[0];			
 		no_info->base2  = med[1];			
 		no_info->altura = med[2];			
+		nome_f[0] = 'T'; nome_f[1] = 'R'; nome_f[2] = 'A';
 		area = (no_info->base1 + no_info->base2) * no_info->altura/2;			
 		no_info_v = no_info;			
 	}				
 	
 	TNO *new_no = (TNO *) malloc(sizeof(TNO));
 	new_no->tipo = tp_f;
+	for (i=0; i<4; i++) new_no->nome[i] = nome_f[i];
 	new_no->info = no_info_v;
 	new_no->area = area;
 	
