@@ -104,7 +104,7 @@ TListInt   * buscar_list_int (TListInt *lista, int info);
 void setar_pais_filhos_ag (TAG **adj, int index);
 
 // FUNCAO PARA EXIBICAO DO MENU
-int iniciar_menu (TAG *arv_g);
+int iniciar_menu (TAG **end_arv_g);
 
 // FUNCOES DE BUSCA
 TAG * buscar_figura (int cod, TAG *ag);
@@ -134,7 +134,7 @@ int main (int argc, char* argv[]) {
 	if (argv[1]) {
 		TAG *ag = criar_ag(argv[1]); 
 		if (ag)
-			while (iniciar_menu(ag));
+			while (iniciar_menu(&ag));
 		else
 			printf ("Não foi possível criar a árvore genérica! Verifique o log de erros.\n");
 	} else {
@@ -656,12 +656,12 @@ void setar_pais_filhos_ag (TAG **adj, int index) {
 	}
 }
 
-int iniciar_menu (TAG *arv_g) {
+int iniciar_menu (TAG **end_arv_g) {
 	
-	if (!arv_g) {
-		printf ("Não foi possível montar a árvore. Verifique o log de erros.\n");
-		return 0;	
-	}		
+	TAG *arv_g = *end_arv_g;
+	
+	if (!arv_g)
+		printf ("Árvore não existe mais.\n");
 	
 	TAG  *result = NULL; 
 	TAB  *arv_B  = NULL;
@@ -837,8 +837,8 @@ int iniciar_menu (TAG *arv_g) {
 				scanf (" %c", &opt);
 				if (opt == 's' || opt == 'S' || opt == 10 || opt == 13) {
 					destruir_arvore (arv_g);
-					arv_g = NULL;
 					imprimir_info_subarv_simples (arv_g);
+					*end_arv_g = NULL;
 					break;
 				} else if (opt == 'n' || opt == 'N') {
 					printf("Okay! O seguro morreu de velho!");
@@ -978,8 +978,7 @@ void imprimir_info_figura (TAG *ag, TAG *ag_pai) {
 	int num_fig[6];
 	int tot_parent;
 	float area_parent;
-	char figura[4]; figura[3] = '\0';
-	
+		
 	if (!ag) {
 		printf ("NULL");
 		return;
