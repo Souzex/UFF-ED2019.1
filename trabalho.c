@@ -3,6 +3,11 @@
 #include <float.h>
 
 #define PI 3.14159265358979323846
+#define TOTAL_FIGS 5
+
+const int t = 2;
+
+enum figura {TRI=0, RET, TRA, CIR, QUA};
 
 typedef struct list_char {
 	char info;
@@ -69,15 +74,25 @@ typedef struct ag {
 
 typedef struct abb {
 	int cod;
-	
+	TNO *no;
+	int alt;
+    struct abb *esq;
+    struct abb *dir;
 } TABB;
 
-typedef struct ab {
+typedef struct chave {
 	int cod;
-	
+	TNO *no;
+	struct chave *prox;
+} TKEY;
+
+typedef struct aB {
+	int nchaves;
+	int folha;
+	TKEY *chave;
+  	struct aB **filho;
 } TAB;
 
-enum figura {TRI=1, RET, TRA, CIR, QUA};
 
 /*
 (a) buscar figuras geometricas, por meio de um codigo unico
@@ -90,7 +105,10 @@ enum figura {TRI=1, RET, TRA, CIR, QUA};
 (h) converter em arvore B, baseando-se no codigo unico
 */
 
-// FUNCOES PARA CRIACAO DA ARVORE GENERICA A PARTIR DE UM ARQUIVO DE ENTRADA
+// FUNCAO PARA EXIBICAO DO MENU
+int iniciar_menu (TAG **end_arv_g, TABB **end_arv_bb, TAB **end_arv_B);
+
+// ARVORE GENERICA (AG): FUNCOES PARA CRIACAO A PARTIR DE UM ARQUIVO DE ENTRADA
 TAG * criar_ag (char *nome_arq);
 TListChar  * inserir_final_list_char  (TListChar  *lista, char  info);
 TListInt   * inserir_final_list_int   (TListInt   *lista, int   info);
@@ -103,38 +121,51 @@ void liberar_list_arq   (TListArq   *lista);
 TListInt   * buscar_list_int (TListInt *lista, int info);
 void setar_pais_filhos_ag (TAG **adj, int index);
 
-// FUNCAO PARA EXIBICAO DO MENU
-int iniciar_menu (TAG **end_arv_g);
-
-// FUNCOES DE BUSCA
+// ARVORE GENERICA (AG): FUNCOES DE BUSCA
 TAG * buscar_figura (int cod, TAG *ag);
 TAG * buscar_figura_pai (int cod, TAG *ag, TAG *ag_pai);
 
-// FUNCOES DE IMPRESSAO
+// ARVORE GENERICA (AG): FUNCOES DE IMPRESSAO
 void imprimir_info_figura (TAG *ag, TAG *ag_pai);
 void imprimir_info_subarv_simples (TAG *ag);
 void imprimir_info_subarv_verbose (TAG *ag);
 void imprimir_info_subarv (TAG *ag, int *num_nodes, float *area_tot, int **num_fig, float **area_fig, int **cod_maior_area_fig, char ***nome_maior_area_fig, float **maior_area_fig, int **cod_menor_area_fig, char ***nome_menor_area_fig, float **menor_area_fig);
 
-// FUNCOES DE INSERCAO, RETIRADA E DESTRUICAO
+// ARVORE GENERICA (AG): FUNCOES DE INSERCAO, RETIRADA E DESTRUICAO
 TAG * inserir_figura (TAG *ag, int cod, int cod_pai, int tp_f, float *med);
 void retirar_figura  (TAG *ag, int cod_r, int cod_h);
 void destruir_arvore (TAG *ag);
 
-// FUNCOES DE CONVERSAO E IMPRESSAO DA ARVORE DE BUSCA BINARIA (ABB) E ARVORES B (AB)
-void destruir_abb (TABB *abb);
-void destruir_aB  (TAB *aB);
-TABB * converter_abb (TAG *ag);
-TAB  * converter_aB  (TAG *ag);
-void imprimir_abb (TABB *abb);
-void imprimir_aB  (TAB *aB);
+// ARVORE DE BUSCA BINARIA AVL (ABB-AVL): FUNCAO DE CONVERSAO E DEMAIS FUNCOES
+TABB * destruir_abb (TABB *abb);
+TABB * converter_abb (TABB *abb, TAG *ag);
+TABB * inserir_abb (TABB *abb, TAG *ag);
+int calcular_altura_abb (TABB *abb);
+TABB * rotacionar_dir_abb (TABB *abb);
+TABB * rotacionar_esq_abb (TABB *abb);
+TABB * rotacionar_esq_dir_abb (TABB *abb);
+TABB * rotacionar_dir_esq_abb (TABB *abb);
+void imprimir_abb (TABB *abb, int andar);
+int maior_int (int l, int r);
+
+// ARVORE B (AB): FUNCAO DE CONVERSAO E DEMAIS FUNCOES
+TAB * destruir_aB  (TAB *aB);
+TAB * converter_aB (TAB *aB, TAG *ag);
+TAB * inserir_aB (TAB *aB, TAG *ag, int t);
+TAB * buscar_aB (TAB *aB, int cod);
+TAB * criar_aB (int t);
+TAB * dividir_aB (TAB *aB_aux, int cod, TAB* aB, int t);
+TAB * inserir_n_compl_aB (TAB *aB, TAG *ag, int t);
+void imprimir_aB (TAB *aB, int andar);
 
 int main (int argc, char* argv[]) {
 
 	if (argv[1]) {
-		TAG *ag = criar_ag(argv[1]); 
+		TAG  *ag  = criar_ag(argv[1]);
+		TABB *abb = NULL;
+		TAB  *aB  = NULL;
 		if (ag)
-			while (iniciar_menu(&ag));
+			while (iniciar_menu (&ag, &abb, &aB));
 		else
 			printf ("Não foi possível criar a árvore genérica! Verifique o log de erros.\n");
 	} else {
@@ -656,58 +687,59 @@ void setar_pais_filhos_ag (TAG **adj, int index) {
 	}
 }
 
-int iniciar_menu (TAG **end_arv_g) {
+int iniciar_menu (TAG **end_arv_g, TABB **end_arv_bb, TAB **end_arv_B) {
 	
-	TAG *arv_g = *end_arv_g;
-	
-	if (!arv_g)
-		printf ("Árvore não existe mais.\n");
-	
+	TAG  *arv_g  = *end_arv_g;
+	TABB *arv_bb = *end_arv_bb;
+	TAB  *arv_B  = *end_arv_B;
+		
 	TAG  *result = NULL; 
-	TAB  *arv_B  = NULL;
-	TABB *arv_bb = NULL;
+	
 	char opt, opt_2;
+	int opt_i;
 	int resp_usu = 1;
 	int i;
 	int cod, cod_pai, cod_herd, tp_fig;
 	float *medidas;
-	//system("cls");
+	printf("\n\n");
 	printf("Escolha uma das opções abaixo:\n\n");
-	printf("a - Buscar figuras geométricas, por meio de um código único.\n");
-    printf("b - Imprimir informações relevantes, tanto da árvore, quanto das figuras, incluindo-se sua área.\n");
+	printf("a - Buscar figuras geométricas.\n");
+    printf("b - Imprimir informações relevantes (árvore e figuras individuais).\n");
     printf("c - Inserir novas figuras.\n");
     printf("d - Retirar figuras, passando seus descendentes para outro pai.\n");
     printf("e - Destruir a árvore.\n");
     printf("f - Alterar as dimensões de figuras.\n");
-    printf("g - Transformar em árvore binária de busca balanceada, baseando-se no código único.\n");
-	printf("h - Converter em árvore B, baseando-se no código único.\n");
+    printf("g - Converter em uma árvore AVL.\n");
+	printf("h - Converter em uma árvore B.\n");
 	printf("Digite o número 0 para sair.\n");
+	printf("A sua opção é: ");
 	scanf (" %c", &opt);
     printf("\n");
 	switch (opt){
         
 		case 'a':
-            printf("Digite o código da figura/nó: ");
+            if (!arv_g) {printf ("Árvore genérica não existe!\n"); break;}
+			printf("Digite o código da figura/nó: ");
 			scanf (" %d", &cod);
             printf("\n\n");
 			if(result = buscar_figura (cod, arv_g)) 
 				imprimir_info_figura (result, buscar_figura_pai (cod, arv_g, NULL));
 			else
 				printf("Não existe uma figura/nó com o código informado!");
-            //system("pause");
             break;
         
 		case 'b':
-            printf("Digite qualquer coisa (ou apenas ENTER) para informações a partir da raiz.\n");
+            if (!arv_g) {printf ("Árvore genérica não existe!\n"); break;}
+			printf("Digite qualquer coisa (ou apenas ENTER) para informações a partir da raiz.\n");
 			printf("Digite 's' para informações de uma subarvore no modo simples.\n");
 			printf("Digite 'v' para informações de uma subarvore no modo completo.\n");
 			printf("Digite 'n' para informações de um nó em particular.\n");
 			printf("A opção é: ");
 			scanf (" %c", &opt);
-            printf("\n\n");
-			if ((opt == 's') || (opt == 'v') || (opt == 'n')) {
+            if ((opt == 's') || (opt == 'v') || (opt == 'n')) {
 				printf("Digite o código da figura/nó: ");
 				scanf (" %d", &cod);
+				printf("\n\n");
 				if (result = buscar_figura (cod, arv_g)) {
 					if (opt == 's') imprimir_info_subarv_simples (result);
 					if (opt == 'v') imprimir_info_subarv_verbose (result);
@@ -716,10 +748,10 @@ int iniciar_menu (TAG **end_arv_g) {
 					printf("Não existe uma figura/nó com o código informado!");
 			} else 
 				imprimir_info_subarv_verbose (arv_g);
-			//system("pause");
-            break;		
+			break;		
 		
 		case 'c':
+			if (!arv_g) {printf ("Árvore genérica não existe!\n"); break;}
 			while (1) {
 				printf("Digite um código único para identificar a figura na árvore: ");
 				scanf (" %d", &cod);
@@ -737,6 +769,7 @@ int iniciar_menu (TAG **end_arv_g) {
 					break;
 			}
 			while (1) {
+				int tp_fig, opt_fig;				
 				float *aux_med;
 				printf("Qual tipo de figura você quer inserir?\n");
 				printf("1 - TRI\n");
@@ -744,64 +777,96 @@ int iniciar_menu (TAG **end_arv_g) {
 				printf("3 - TRA\n");
 				printf("4 - CIR\n");
 				printf("5 - QUA\n");
+				printf("0 - Sair\n");
 				printf("Tipo: ");
-				scanf(" %d", &tp_fig);
+				scanf(" %d", &opt_fig); tp_fig = opt_fig-1;
+				medidas = (float *) malloc (sizeof(float)*3);
+				aux_med = medidas;				
 				if (tp_fig == TRI) {
-					medidas = (float *) malloc (sizeof(float)*2);
-					aux_med = medidas;
-					printf("Informe a base do triângulo: ");
-					scanf(" %f", aux_med++);
+					while (1) {					
+						printf("Informe a base do triângulo: ");
+						scanf(" %f", aux_med);
+						if (*aux_med <= 0.0) printf ("Por favor, apenas positivos maiores que 0!\n");
+						else 		     break;
+					}						
 					printf("\n");
-					printf("Informe a altura do triângulo: ");
-					scanf(" %f", aux_med);
-					break;
+					while (1) { 
+						aux_med++;						
+						printf("Informe a altura do triângulo: ");
+						scanf(" %f", aux_med);
+						if (*aux_med <= 0.0) printf ("Por favor, apenas positivos maiores que 0!\n");
+						else                 break;
+					}
 				} else if (tp_fig == RET) {
-					medidas = (float *) malloc (sizeof(float)*2);
-					aux_med = medidas;
-					printf("Informe o comprimento do retângulo: ");
-					scanf(" %f", aux_med++);
+					while (1) {					
+						printf("Informe o comprimento do retângulo: ");
+						scanf(" %f", aux_med);
+						if (*aux_med <= 0.0) printf ("Por favor, apenas positivos maiores que 0!\n");
+						else 		     break;
+					}						
 					printf("\n");
-					printf("Informe a largura do retângulo: ");
-					scanf(" %f", aux_med);
-					break;
+					while (1) { 
+						aux_med++;						
+						printf("Informe a largura do retângulo: ");
+						scanf(" %f", aux_med);
+						if (*aux_med <= 0.0) printf ("Por favor, apenas positivos maiores que 0!\n");
+						else                 break;
+					}
 				} else if (tp_fig == TRA) {
-					medidas = (float *) malloc (sizeof(float)*3);
-					aux_med = medidas;
-					printf("Informe uma das bases do trapézio: ");
-					scanf(" %f", aux_med++);
+					while (1) {					
+						printf("Informe uma das bases do trapézio: ");
+						scanf(" %f", aux_med);
+						if (*aux_med <= 0.0) printf ("Por favor, apenas positivos maiores que 0!\n");
+						else 		     break;
+					}						
 					printf("\n");
-					printf("Informe a outra base do trapézio: ");
-					scanf(" %f", aux_med++);
-					printf("Informe a altura do trapézio: ");
-					scanf(" %f", aux_med);
-					break;
+					while (1) { 
+						aux_med++;						
+						printf("Informe a outra base do trapézio: ");
+						scanf(" %f", aux_med);
+						if (*aux_med <= 0.0) printf ("Por favor, apenas positivos maiores que 0!\n");
+						else                 break;
+					}
+					printf("\n");
+					while (1) { 
+						aux_med++;						
+						printf("Informe a altura do trapézio: ");
+						scanf(" %f", aux_med);
+						if (*aux_med <= 0.0) printf ("Por favor, apenas positivos maiores que 0!\n");
+						else                 break;
+					}					
 				} else if (tp_fig == CIR) {
-					medidas = (float *) malloc (sizeof(float)*1);
-					aux_med = medidas;
-					printf("Informe o raio do círculo: ");
-					scanf(" %f", aux_med);
-					break;
+					while (1) { 
+						printf("Informe o raio do círculo: ");
+						scanf(" %f", aux_med);
+						if (*aux_med <= 0.0) printf ("Por favor, apenas positivos maiores que 0!\n");
+						else                 break;
+					}
 				} else if (tp_fig == QUA) {
-					medidas = (float *) malloc (sizeof(float)*1);
-					aux_med = medidas;
-					printf("Informe o lado do quadrado: ");
-					scanf(" %f", aux_med);
-					break;
+					while (1) { 
+						printf("Informe o lado do quadrado: ");
+						scanf(" %f", aux_med);
+						if (*aux_med <= 0.0) printf ("Por favor, apenas positivos maiores que 0!\n");
+						else                 break;
+					}
+				} else if (tp_fig == -1) {
+					free (medidas);
+					break;				
 				} else {
 					printf("Opção inválida!");
 				}
+				if (result = inserir_figura (arv_g, cod, cod_pai, tp_fig, medidas)) {
+					printf("Figura inserida com sucesso!\n");
+					free (medidas);
+					imprimir_info_figura (result, buscar_figura_pai (cod, arv_g, NULL));
+				} else {
+					printf("Problemas na inserção da figura! Consulte o suporte.\n");
+				}
 			}
-			if (result = inserir_figura (arv_g, cod, cod_pai, tp_fig, medidas)) {
-				printf("Figura inserida com sucesso!\n");
-				imprimir_info_figura (result, buscar_figura_pai (cod, arv_g, NULL));
-			} else {
-				printf("Problemas na inserção da figura! Consulte o suporte.\n");
-			}
-			free (medidas);
-			//system("pause");
-            break;
+			break;
 		
 		case 'd':
+			if (!arv_g) {printf ("Árvore genérica não existe!\n"); break;}
 			while (1) {
 				printf("Digite o código da figura que você quer remover: ");
 				scanf (" %d", &cod);
@@ -829,10 +894,10 @@ int iniciar_menu (TAG **end_arv_g) {
 			}
 			retirar_figura (arv_g, cod, cod_herd);
 			imprimir_info_subarv_simples (arv_g);
-			//system("pause");
-            break;;
+			break;;
 		
 		case 'e':
+			if (!arv_g) {printf ("Árvore genérica não existe!\n"); break;}
 			while (1) {
 				printf("Confirma que quer destruir a árvore (s/N)?");
 				scanf (" %c", &opt);
@@ -848,10 +913,10 @@ int iniciar_menu (TAG **end_arv_g) {
 					printf("Opção inválida!");
 				}
 			}		
-			//system("pause");
-            break;
+			break;
 		
 		case 'f':
+			if (!arv_g) {printf ("Árvore genérica não existe!\n"); break;}
 			while (1) {
 				printf("Digite o código da figura que você quer alterar as dimensões: ");
 				scanf (" %d", &cod);
@@ -863,43 +928,81 @@ int iniciar_menu (TAG **end_arv_g) {
 						TTRI *info = (TTRI *) result->no->info;
 						printf("A medida atual da base do triângulo é %.2f\n", info->base);
 						printf("A medida atual da altura do triângulo é %.2f\n", info->altura);
-						printf("Digite a nova base do triângulo ou ENTER para mantê-la: ");
-						scanf(" %f", &medida); info->base = medida;
-						printf("Digite a nova base do triângulo ou ENTER para mantê-la: ");
-						scanf(" %f", &medida); info->altura = medida;
+						while (1) {					
+							printf("Digite a nova base do triângulo ou ENTER para mantê-la: ");
+							scanf(" %f", &medida); 
+							if (medida <= 0.0) {printf ("Por favor, apenas positivos maiores que 0!\n");}
+							else 		       {info->base = medida; break;}
+						}						
+						printf("\n");
+						while (1) { 
+							printf("Digite a nova altura do triângulo ou ENTER para mantê-la: ");;
+							scanf(" %f", &medida);
+							if (medida <= 0.0) {printf ("Por favor, apenas positivos maiores que 0!\n");}
+							else 		       {info->altura = medida; break;}
+						}
 						result->no->area = info->base * info->altura/2;
 					} else if (result->no->tipo == RET) {
 						TRET *info = (TRET *) result->no->info;
 						printf("A medida atual da largura do retângulo é %.2f\n", info->largura);
-						printf("A medida atual do comprimento do retângulo é %.2f\n", info->comprimento);
-						printf("Digite a nova largura do retângulo ou ENTER para mantê-la: ");
-						scanf(" %f", &medida); info->largura = medida;
-						printf("Digite a nova comprimento do retângulo ou ENTER para mantê-lo: "); 
-						scanf(" %f", &medida); info->comprimento = medida;
+						printf("A medida atual da comprimento do retângulo é %.2f\n", info->comprimento);
+						while (1) {					
+							printf("Digite a nova largura do retângulo ou ENTER para mantê-la: ");
+							scanf(" %f", &medida); 
+							if (medida <= 0.0) {printf ("Por favor, apenas positivos maiores que 0!\n");}
+							else 		       {info->largura = medida; break;}
+						}						
+						printf("\n");
+						while (1) { 
+							printf("Digite o novo comprimento do retângulo ou ENTER para mantê-lo: ");;
+							scanf(" %f", &medida);
+							if (medida <= 0.0) {printf ("Por favor, apenas positivos maiores que 0!\n");}
+							else 		       {info->comprimento = medida; break;}
+						}
 						result->no->area = info->largura * info->comprimento;
 					} else if (result->no->tipo == TRA) {
 						TTRA *info = (TTRA *) result->no->info;
 						printf("A medida atual de uma das bases do trapézio é %.2f\n", info->base1);
 						printf("A medida atual da outra base do trapézio é %.2f\n", info->base2);
 						printf("A medida atual da altura do trapézio é %.2f\n", info->altura);
-						printf("Digite um novo valor para esta base ou ENTER para mantê-lo: ");
-						scanf(" %f", &medida); info->base1 = medida;
-						printf("Digite um novo valor para esta base ou ENTER para mantê-lo: ");
-						scanf(" %f", &medida); info->base2 = medida;
-						printf("Digite a nova altura do trapézio ou ENTER para mantê-la: ");
-						scanf(" %f", &medida); info->altura = medida;
+						while (1) {					
+							printf("Digite um novo valor para uma das bases ou ENTER para mantê-lo: ");
+							scanf(" %f", &medida); 
+							if (medida <= 0.0) {printf ("Por favor, apenas positivos maiores que 0!\n");}
+							else 		       {info->base1 = medida; break;}
+						}						
+						while (1) { 
+							printf("Digite um novo valor para a outra base ou ENTER para mantê-lo: ");
+							scanf(" %f", &medida);
+							if (medida <= 0.0) {printf ("Por favor, apenas positivos maiores que 0!\n");}
+							else 		       {info->base2 = medida; break;}
+						}
+						while (1) { 
+							printf("Digite a nova altura do trapézio ou ENTER para mantê-la: ");;
+							scanf(" %f", &medida);
+							if (medida <= 0.0) {printf ("Por favor, apenas positivos maiores que 0!\n");}
+							else 		       {info->altura = medida; break;}
+						}
 						result->no->area = (info->base1 + info->base2)*info->altura/2;
 					} else if (result->no->tipo == CIR) {
 						TCIR *info = (TCIR *) result->no->info;
 						printf("A medida atual do raio do círculo é %.2f\n", info->raio);
-						printf("Digite o novo raio do círculo ou ENTER para mantê-lo: ");
-						scanf(" %f", &medida); info->raio = medida;
+						while (1) {					
+							printf("Digite o novo raio do círculo ou ENTER para mantê-lo: ");
+							scanf(" %f", &medida); 
+							if (medida <= 0.0) {printf ("Por favor, apenas positivos maiores que 0!\n");}
+							else 		       {info->raio = medida; break;}
+						}
 						result->no->area = info->raio * info->raio * PI/2;
 					} else if (result->no->tipo == QUA) {
 						TQUA *info = (TQUA *) result->no->info;
 						printf("A medida atual do lado do quadrado é %.2f\n", info->lado);
-						printf("Digite o novo lado do quadrado ou ENTER para mantê-lo: ");
-						scanf(" %f", &medida); info->lado = medida;
+						while (1) {					
+							printf("Digite o novo lado do quadrado ou ENTER para mantê-lo: ");
+							scanf(" %f", &medida); 
+							if (medida <= 0.0) {printf ("Por favor, apenas positivos maiores que 0!\n");}
+							else 		       {info->lado = medida; break;}
+						}
 						result->no->area = info->lado * info->lado;
 					}
 					printf("A figura modificada possui agora as seguintes informações:\n");
@@ -907,32 +1010,33 @@ int iniciar_menu (TAG **end_arv_g) {
 					break;
 				}
 			}
-			//system("pause");
+			
             break;
 		
 		case 'g':
-			destruir_abb (arv_bb);
-			arv_bb = converter_abb (arv_g);
-			imprimir_abb (arv_bb);
-			//system("pause");
-            break;
+			if (!arv_g) {printf ("Árvore genérica não existe!\n"); break;}
+			arv_bb = destruir_abb (arv_bb);
+			arv_bb = converter_abb (arv_bb, arv_g);
+			imprimir_abb (arv_bb, 1);
+			break;
 		
 		case 'h':
-			destruir_aB (arv_B);
-			arv_B = converter_aB (arv_g);
-			imprimir_aB (arv_B);
-			//system("pause");
-            break;
+			if (!arv_g) {printf ("Árvore genérica não existe!\n"); break;}
+			arv_B = destruir_aB (arv_B);
+			arv_B = converter_aB (arv_B, arv_g);
+			imprimir_aB (arv_B, 0);
+			break;
 		
 		case '0':
 			resp_usu = 0;
 			printf ("Até mais!\n");
-			//system("pause");
-            break;
+			destruir_arvore (arv_g);
+			destruir_abb (arv_bb);
+			destruir_aB (arv_B);
+			break;
 		
 		default:
 			printf("Opção inválida!\n");
-            //system("pause");
             break;
 	}
 	
@@ -974,7 +1078,7 @@ void imprimir_info_figura (TAG *ag, TAG *ag_pai) {
 	
 	TAG *aux = NULL;
 	int i;
-	int num_fig[6];
+	int num_fig[TOTAL_FIGS];
 	int tot_parent;
 	float area_parent;
 		
@@ -1010,7 +1114,7 @@ void imprimir_info_figura (TAG *ag, TAG *ag_pai) {
 		printf ("RAIZ! Não possui irmãos!\n");
 	} else {
 	
-		for (i=0; i<6; i++) num_fig[i] = 0;
+		for (i=0; i < TOTAL_FIGS; i++) num_fig[i] = 0;
 		tot_parent = 0;
 		area_parent = 0.0;
 		
@@ -1039,7 +1143,7 @@ void imprimir_info_figura (TAG *ag, TAG *ag_pai) {
 		}
 	}
 	
-	for (i=0; i<6; i++) num_fig[i] = 0;
+	for (i=0; i<TOTAL_FIGS; i++) num_fig[i] = 0;
 	tot_parent = 0;
 	area_parent = 0.0;
 	
@@ -1083,47 +1187,41 @@ void imprimir_info_subarv_simples (TAG *ag) {
 				aux = aux->irmao;
 			}
 		}
-	} else
-		printf ("Árvore não existe!\n");
+	}		
 }
 
 void imprimir_info_subarv_verbose (TAG *ag) {
-	
-	if (!ag) {
-		printf ("Árvore não existe!\n");
-		return;
-	}
 	
 	int i;
 	int *n_tot_figs = (int *) malloc (sizeof(int));     
 	float *tot_area = (float *) malloc (sizeof(float)); 
 	int **num_fig = (int **) malloc (sizeof(int*));
-	num_fig[0] = (int *) malloc (sizeof(int)*6);
+	num_fig[0] = (int *) malloc (sizeof(int)*(TOTAL_FIGS));
 	float **area_fig = (float **) malloc (sizeof(float*));
-	area_fig[0] = (float *) malloc (sizeof(float)*6);
+	area_fig[0] = (float *) malloc (sizeof(float)*(TOTAL_FIGS));
 	int **cod_maior_area_fig = (int **) malloc (sizeof(int*));
-	cod_maior_area_fig[0] = (int *) malloc (sizeof(int)*6);
+	cod_maior_area_fig[0] = (int *) malloc (sizeof(int)*(TOTAL_FIGS));
 	char ***nome_maior_area_fig = (char ***) malloc (sizeof(char**));
-	nome_maior_area_fig[0] = (char **) malloc (sizeof(char *)*6);
-	for (i=0; i < 6; i++) nome_maior_area_fig[0][i] = (char *) malloc (sizeof(char)*4);
+	nome_maior_area_fig[0] = (char **) malloc (sizeof(char *)*(TOTAL_FIGS));
+	for (i=0; i < (TOTAL_FIGS); i++) nome_maior_area_fig[0][i] = (char *) malloc (sizeof(char)*4);
 	float **maior_area_fig = (float **) malloc (sizeof(float*));
-	maior_area_fig[0] = (float *) malloc (sizeof(float)*6);
+	maior_area_fig[0] = (float *) malloc (sizeof(float)*(TOTAL_FIGS));
 	int **cod_menor_area_fig = (int **) malloc (sizeof(int*));
-	cod_menor_area_fig[0] = (int *) malloc (sizeof(int)*6);
+	cod_menor_area_fig[0] = (int *) malloc (sizeof(int)*(TOTAL_FIGS));
 	char ***nome_menor_area_fig = (char ***) malloc (sizeof(char**));
-	nome_menor_area_fig[0] = (char **) malloc (sizeof(char *)*6);
-	for (i=0; i < 6; i++) nome_menor_area_fig[0][i] = (char *) malloc (sizeof(char)*4);
+	nome_menor_area_fig[0] = (char **) malloc (sizeof(char *)*(TOTAL_FIGS));
+	for (i=0; i < (TOTAL_FIGS); i++) nome_menor_area_fig[0][i] = (char *) malloc (sizeof(char)*4);
 	float **menor_area_fig = (float **) malloc (sizeof(float*));
-	menor_area_fig[0] = (float *) malloc (sizeof(float)*6);
+	menor_area_fig[0] = (float *) malloc (sizeof(float)*(TOTAL_FIGS));
 	float maior_area = 0.0, menor_area = FLT_MAX;
 	int cod_maior_area = 0, cod_menor_area = 0;
 	char fig_maior_area[4], fig_menor_area[4]; 
-	char nome_fig[6][4] = {"","TRI","RET","TRA","CIR","QUA"};
-	for (i=1; i<6; i++) nome_fig[i][3] = '\0';
+	char nome_fig[TOTAL_FIGS][4] = {"TRI","RET","TRA","CIR","QUA"};
+	for (i=0; i<TOTAL_FIGS; i++) nome_fig[i][3] = '\0';
 	
 	*n_tot_figs = 0;
 	*tot_area = 0.0;
-	for (i=0; i<6; i++) {
+	for (i=0; i<TOTAL_FIGS; i++) {
 		num_fig[0][i] = 0; 
 		area_fig[0][i] = 0.0;
 		cod_maior_area_fig[0][i] = 0;
@@ -1135,7 +1233,7 @@ void imprimir_info_subarv_verbose (TAG *ag) {
 	printf ("LEGENDA: CÓDIGO (TIPO/ÁREA)\n");
 	imprimir_info_subarv (ag, n_tot_figs, tot_area, num_fig, area_fig, cod_maior_area_fig, nome_maior_area_fig, maior_area_fig, cod_menor_area_fig, nome_menor_area_fig, menor_area_fig);
 
-	for (i=1; i<6; i++) {		
+	for (i=0; i<TOTAL_FIGS; i++) {		
 		if (maior_area < maior_area_fig[0][i]) {		
 			maior_area = maior_area_fig[0][i];
 			cod_maior_area = cod_maior_area_fig[0][i];			
@@ -1152,22 +1250,22 @@ void imprimir_info_subarv_verbose (TAG *ag) {
 			
     printf ("TOTAL FIGs: %d ", *n_tot_figs);
 	printf ("(");
-	for (i=1; i<6; i++) {
+	for (i=0; i<TOTAL_FIGS; i++) {
 		printf ("%d %s", num_fig[0][i], nome_fig[i]);
-		if (i < 4) // num_fig - 2 
+		if (i < TOTAL_FIGS-2) 
 			printf (", ");
-		else if (i == 4) // num_fig - 2 
+		else if (i == TOTAL_FIGS-2) 
 			printf (" e ");			
 	}
 	printf (")\n");
 	
 	printf ("TOTAL AREA: %.2f ", *tot_area);
 	printf ("(");
-	for (i=1; i<6; i++) {
+	for (i=0; i<TOTAL_FIGS; i++) {
 		printf ("%.2f %s", area_fig[0][i], nome_fig[i]);
-		if (i < 4) // num_fig - 2 
+		if (i < TOTAL_FIGS-2) // num_fig - 2 
 			printf (", ");
-		else if (i == 4) // num_fig - 2 
+		else if (i == TOTAL_FIGS-2) // num_fig - 2 
 			printf (" e ");			
 	}
 	printf (")\n");
@@ -1175,11 +1273,11 @@ void imprimir_info_subarv_verbose (TAG *ag) {
 	printf ("MAIOR AREA: %.2f (da fig. %d, cujo tipo é %s)\n", maior_area, cod_maior_area, fig_maior_area);		
 	printf ("MENOR AREA: %.2f (da fig. %d, cujo tipo é %s)\n", menor_area, cod_menor_area, fig_menor_area);		
 	printf ("MAIOR AREA/TIPO:\n");
-	for (i=1; i<6; i++)
+	for (i=0; i<TOTAL_FIGS; i++)
 		if (maior_area_fig[0][i] > 0.0)
 			printf ("- %s: %.2f (fig. %d)\n", nome_maior_area_fig[0][i], maior_area_fig[0][i], cod_maior_area_fig[0][i]);
 	printf ("MENOR AREA/TIPO:\n");
-	for (i=1; i<6; i++)
+	for (i=0; i<TOTAL_FIGS; i++)
 		if (menor_area_fig[0][i] < FLT_MAX)	
 			printf ("- %s: %.2f (fig. %d)\n", nome_menor_area_fig[0][i], menor_area_fig[0][i], cod_menor_area_fig[0][i]);
 	
@@ -1192,11 +1290,11 @@ void imprimir_info_subarv_verbose (TAG *ag) {
 	free (cod_menor_area_fig[0]); free (cod_menor_area_fig);
 	free (menor_area_fig[0]);     free (menor_area_fig);
 
-	for (i=0; i < 6; i++) free (nome_maior_area_fig[0][i]);
+	for (i=0; i < TOTAL_FIGS; i++) free (nome_maior_area_fig[0][i]);
 	free (nome_maior_area_fig[0]);
 	free (nome_maior_area_fig);
 	
-	for (i=0; i < 6; i++) free (nome_menor_area_fig[0][i]);
+	for (i=0; i < TOTAL_FIGS; i++) free (nome_menor_area_fig[0][i]);
 	free (nome_menor_area_fig[0]);
 	free (nome_menor_area_fig);	
 }	
@@ -1266,6 +1364,7 @@ TAG * inserir_figura (TAG *ag, int cod, int cod_pai, int tp_f, float *med) {
 		no_info_v = no_info;			
 	} else if (tp_f == TRI) {			
 		TTRI *no_info = (TTRI *) malloc(sizeof(TTRI));			
+		printf("Oi\n");
 		no_info->base   = med[0];			
 		no_info->altura = med[1];			
 		nome_f[0] = 'T'; nome_f[1] = 'R'; nome_f[2] = 'I';
@@ -1359,20 +1458,311 @@ void destruir_arvore (TAG *ag) {
 	}
 }
 
-void destruir_abb (TABB *abb) {
+TAB * destruir_aB (TAB *aB) {
+
+  if (aB) {
+    int i;
+	if (!aB->folha)
+      for(i = 0; i <= aB->nchaves; i++) 
+		  destruir_aB (aB->filho[i]);
+    
+	while (aB->chave) {
+		TKEY *temp = aB->chave->prox;
+		free(aB->chave);
+		aB->chave = temp;
+	}
+	free(aB->filho);
+    free(aB);
+    return NULL;
+  }
 }
 
-void destruir_aB (TAB *aB) {
+TAB * converter_aB (TAB *aB, TAG *ag) {
+
+	TAG *aux = NULL;
+	if (ag){
+		if (ag->filho) {
+			aux = ag->filho;
+			while (aux) {
+				aB = converter_aB (aB, aux);
+				aux = aux->irmao;
+			}
+		}
+		return inserir_aB (aB, ag, t);
+	} else
+		return NULL;
 }
 
-TABB * converter_abb (TAG *ag) {
+TAB * inserir_aB (TAB *aB, TAG *ag, int t) {
+	
+	if (buscar_aB(aB,ag->cod)) 
+		return aB;
+  
+	if (!aB){
+		aB = criar_aB (t);
+		aB->chave->cod = ag->cod;
+		aB->chave->no  = ag->no;
+		aB->nchaves = 1;
+		return aB;
+	}
+  
+	if (aB->nchaves == (2*t)-1) {
+		TAB *aB_aux = criar_aB (t);
+		aB_aux->nchaves = 0;
+		aB_aux->folha = 0;
+		aB_aux->filho[0] = aB;
+		aB_aux = dividir_aB (aB_aux,1,aB,t);
+		aB_aux = inserir_n_compl_aB (aB_aux,ag,t);
+		return aB_aux;
+	}
+	aB = inserir_n_compl_aB (aB,ag,t);
+	return aB;		
 }
 
-TAB * converter_aB (TAG *ag) {
+TAB * buscar_aB (TAB *aB, int cod) {
+	
+	TAB *resp = NULL;
+  	
+	if (!aB) 
+		return resp;
+  
+	int i = 0;
+	TKEY *aB_key = aB->chave+i;
+	while (i < aB->nchaves && cod > aB_key->cod) {
+		i++;
+		aB_key = aB->chave+i;
+	}
+	
+	if (i < aB->nchaves && cod == aB_key->cod) 
+		return aB;
+  
+	if (aB->folha) 
+		return resp;
+  
+	return buscar_aB (aB->filho[i], cod);
 }
 
-void imprimir_abb (TABB *abb) {
+TAB * criar_aB (int t) {
+  
+	int i;
+	TAB* novo = (TAB*) malloc(sizeof(TAB));
+	novo->nchaves = 0;
+	
+	TKEY *head = NULL, *ant = NULL;
+	for (i=0; i<(2*t-1); i++) {
+		TKEY *chave = (TKEY *) malloc(sizeof(TKEY));	
+		chave->cod  = 0;
+		chave->no   = NULL;
+		chave->prox = NULL;
+		if (i==0) head = chave;
+		else ant->prox = chave;
+		ant = chave;
+	}
+	novo->chave = head;
+	
+	novo->folha = 1;
+	novo->filho = (TAB **) malloc(sizeof(TAB *)*(2*t));
+	for (i=0; i<(t*2); i++) novo->filho[i] = NULL;
+	
+	return novo;
 }
 
-void imprimir_aB (TAB *aB) {
+TAB * dividir_aB (TAB *aB_aux, int cod, TAB* aB, int t) {
+  
+	TAB *novo_aB = criar_aB (t);
+	novo_aB->nchaves = t - 1;
+	novo_aB->folha   = aB->folha;
+	int j;
+  
+	for(j=0; j < t-1; j++) {
+		TKEY *novo_aB_key = novo_aB->chave+j;
+		TKEY *aB_key      = aB->chave+j+t;
+		novo_aB_key->cod  = aB_key->cod;
+		novo_aB_key->no   = aB_key->no;
+	}
+  
+	if(!aB->folha) {
+		for (j = 0; j < t; j++){
+			novo_aB->filho[j] = aB->filho[j+t];
+			aB->filho[j+t] = NULL;
+		}
+	}
+  
+	aB->nchaves = t-1;
+	for (j = aB_aux->nchaves; j >= cod; j--) 
+		aB_aux->filho[j+1] = aB_aux->filho[j];
+  
+	aB_aux->filho[cod] = novo_aB;
+	for (j = aB_aux->nchaves; j >= cod; j--) {
+		TKEY *aB_aux_key1 = aB_aux->chave+j;
+		TKEY *aB_aux_key2 = aB_aux->chave+j-1;
+		aB_aux_key1->cod  = aB_aux_key2->cod;
+		aB_aux_key1->no   = aB_aux_key2->no;
+	}
+	
+	TKEY *aB_aux_key = aB_aux->chave+cod-1;
+	TKEY *aB_key     = aB->chave+t-1;
+	aB_aux_key->cod  = aB_key->cod;
+	aB_aux_key->no   = aB_key->no;
+	
+	aB_aux->nchaves++;
+	
+	return aB_aux;
 }
+
+TAB * inserir_n_compl_aB (TAB *aB, TAG *ag, int t) {
+  
+	int i = aB->nchaves-1;
+	  
+	if (aB->folha) {
+		TKEY *aB_key1 = aB->chave+i;
+		TKEY *aB_key2 = aB->chave+i+1;
+		while((i >= 0) && (ag->cod < aB_key1->cod)) {
+			aB_key2->cod = aB_key1->cod;
+			aB_key2->no  = aB_key1->no;
+			i--;
+			aB_key1 = aB->chave+i;
+			aB_key2 = aB->chave+i+1;
+		}
+		TKEY *aB_key = aB->chave+i+1;
+		aB_key->cod = ag->cod;
+		aB_key->no  = ag->no;
+		aB->nchaves++;
+		return aB;
+	}
+	
+	TKEY *aB_key = aB->chave+i;
+	while((i>=0) && (ag->cod < aB_key->cod)) {
+		i--;
+		aB_key = aB->chave+i;
+	}
+	i++;
+	if (aB->filho[i]->nchaves == (2*t-1)) {
+		aB = dividir_aB (aB, (i+1), aB->filho[i], t);
+		TKEY *aB_key = aB->chave+i;
+		if(ag->cod > aB_key->cod) i++;
+	}
+	aB->filho[i] = inserir_n_compl_aB (aB->filho[i], ag, t);
+	return aB;
+}
+
+void imprimir_aB (TAB *aB, int andar) {
+
+	if (aB) {
+		int i,j;
+		for (i=0; i <= aB->nchaves-1; i++) {
+			imprimir_aB (aB->filho[i],andar+1);
+			for (j=0; j <= andar; j++) printf("   ");
+			TKEY *aB_key = aB->chave+i;
+			printf("%d\n", aB_key->cod);
+		}
+		imprimir_aB (aB->filho[i], andar+1);
+	}
+}	
+
+TABB * destruir_abb (TABB *abb) {
+	
+	if (abb) {
+        destruir_abb (abb->esq);
+        destruir_abb (abb->dir);
+        free (abb);
+		return NULL;
+	}
+}
+
+TABB * converter_abb (TABB *abb, TAG *ag) {
+	
+	TAG *aux = NULL;
+	if (ag){
+		if (ag->filho) {
+			aux = ag->filho;
+			while (aux) {
+				abb = converter_abb(abb, aux);
+				aux = aux->irmao;
+			}
+		}
+		return inserir_abb(abb, ag);
+	} else
+		return NULL;	
+}
+ 
+TABB * inserir_abb (TABB *abb, TAG *ag) {
+    
+	if (!abb) {
+        abb = (TABB *) malloc(sizeof(TABB));
+        abb->cod = ag->cod;
+        abb->no  = ag->no;
+		abb->alt = 0;
+        abb->esq = NULL;
+		abb->dir = NULL;
+    } else if (ag->cod < abb->cod) {
+		abb->esq = inserir_abb(abb->esq,ag);
+        if (calcular_altura_abb(abb->esq) - calcular_altura_abb(abb->dir) == 2)
+            if (ag->cod < abb->esq->cod) abb = rotacionar_dir_abb(abb);
+            else                         abb = rotacionar_esq_dir_abb(abb);
+    } else if (ag->cod > abb->cod) {
+        abb->dir = inserir_abb(abb->dir,ag);
+        if (calcular_altura_abb(abb->dir) - calcular_altura_abb(abb->esq) == 2)
+			if (ag->cod > abb->dir->cod) abb = rotacionar_esq_abb(abb);
+            else                         abb = rotacionar_dir_esq_abb(abb);
+    }
+    abb->alt = maior_int(calcular_altura_abb(abb->esq),calcular_altura_abb(abb->dir)) + 1;
+    return abb;
+}
+
+int calcular_altura_abb (TABB *abb) {
+    
+	if(!abb) return -1;
+    return abb->alt;
+}
+
+TABB * rotacionar_dir_abb (TABB *abb) {
+    
+	TABB *aux = NULL;
+    aux = abb->esq;
+    abb->esq = aux->dir;
+    aux->dir = abb;
+    abb->alt = maior_int(calcular_altura_abb(abb->esq),calcular_altura_abb(abb->dir)) + 1;
+    aux->alt = maior_int(calcular_altura_abb(aux->esq),abb->alt) + 1;
+    return aux;
+}
+
+TABB * rotacionar_esq_abb (TABB *abb) {
+    
+	TABB *aux = NULL;;
+    aux = abb->dir;
+    abb->dir = aux->esq;
+    aux->esq = abb;
+    abb->alt = maior_int(calcular_altura_abb(abb->esq),calcular_altura_abb(abb->dir)) + 1; 
+    aux->alt = maior_int(calcular_altura_abb(aux->dir),abb->alt) + 1;
+    return aux;  
+}
+
+TABB * rotacionar_esq_dir_abb (TABB *abb) {
+    
+	abb->esq = rotacionar_esq_abb(abb->esq);
+    return rotacionar_dir_abb(abb);
+}
+
+
+TABB * rotacionar_dir_esq_abb (TABB *abb) {
+    
+	abb->dir = rotacionar_dir_abb(abb->dir);
+    return rotacionar_esq_abb(abb);
+}
+
+void imprimir_abb (TABB *abb, int andar) {
+	
+	if(abb) {
+		int j;
+		imprimir_abb(abb->esq,andar+1);
+		for (j=0; j <= andar; j++) printf("   ");
+		printf("%d\n", abb->cod);
+		imprimir_abb(abb->dir,andar+1);
+	}	
+}
+
+int maior_int (int l, int r) {
+	return l > r ? l: r;
+}
+
