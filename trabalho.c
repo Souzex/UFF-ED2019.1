@@ -72,6 +72,11 @@ typedef struct ag {
 	struct ag *irmao;
 } TAG;
 
+typedef struct ag_t {
+	TAG *figura;
+	struct ag_t *prox;
+} TAG_T;
+
 typedef struct abb {
 	int cod;
 	TNO *no;
@@ -122,8 +127,9 @@ TListInt   * buscar_list_int (TListInt *lista, int info);
 void setar_pais_filhos_ag (TAG **adj, int index);
 
 // ARVORE GENERICA (AG): FUNCOES DE BUSCA
-TAG * buscar_figura (int cod, TAG *ag);
-TAG * buscar_figura_pai (int cod, TAG *ag, TAG *ag_pai);
+TAG   * buscar_figura (int cod, TAG *ag);
+TAG   * buscar_figura_pai (int cod, TAG *ag, TAG *ag_pai);
+TAG_T * buscar_figura_tipo (int tipo, int *c_fig, TAG *ag, TAG_T *lista_fig_tp);
 
 // ARVORE GENERICA (AG): FUNCOES DE IMPRESSAO
 void imprimir_info_figura (TAG *ag, TAG *ag_pai);
@@ -689,345 +695,489 @@ void setar_pais_filhos_ag (TAG **adj, int index) {
 
 int iniciar_menu (TAG **end_arv_g, TABB **end_arv_bb, TAB **end_arv_B) {
 	
-	TAG  *arv_g  = *end_arv_g;
-	TABB *arv_bb = *end_arv_bb;
-	TAB  *arv_B  = *end_arv_B;
-		
-	TAG  *result = NULL; 
+	TAG   *arv_g  = *end_arv_g;
+	TABB  *arv_bb = *end_arv_bb;
+	TAB   *arv_B  = *end_arv_B;
 	
-	char opt, opt_2;
-	int opt_i;
-	int resp_usu = 1;
+	TAG   *result = NULL;
+	TAG_T *res_tp = NULL;
+	
 	int i;
-	int cod, cod_pai, cod_herd, tp_fig;
-	float *medidas;
+	char opt_c;
+	int  opt_i;
+	int resp_usu = 1;
 	printf("\n\n");
 	printf("Escolha uma das opções abaixo:\n\n");
-	printf("a - Buscar figuras geométricas.\n");
-    printf("b - Imprimir informações relevantes (árvore e figuras individuais).\n");
-    printf("c - Inserir novas figuras.\n");
-    printf("d - Retirar figuras, passando seus descendentes para outro pai.\n");
-    printf("e - Destruir a árvore.\n");
-    printf("f - Alterar as dimensões de figuras.\n");
-    printf("g - Converter em uma árvore AVL.\n");
-	printf("h - Converter em uma árvore B.\n");
-	printf("Digite o número 0 para sair.\n");
+	printf("1 - Buscar figuras geométricas.\n");
+	printf("2 - Imprimir informações relevantes.\n");
+	printf("3 - Inserir novas figuras.\n");
+	printf("4 - Retirar figuras.\n");
+	printf("5 - Destruir a árvore.\n");
+	printf("6 - Alterar as dimensões de figuras.\n");
+	printf("7 - Converter em uma árvore AVL.\n");
+	printf("8 - Converter em uma árvore B.\n");
+	printf("0 - Sair.\n");
 	printf("A sua opção é: ");
-	scanf (" %c", &opt);
+	scanf (" %c", &opt_c);
+	opt_i = opt_c - '0';
     printf("\n");
-	switch (opt){
+	switch (opt_i){
         
-		case 'a':
+		case 1:
             if (!arv_g) {printf ("Árvore genérica não existe!\n"); break;}
-			printf("Digite o código da figura/nó: ");
-			scanf (" %d", &cod);
-            printf("\n\n");
-			if(result = buscar_figura (cod, arv_g)) 
-				imprimir_info_figura (result, buscar_figura_pai (cod, arv_g, NULL));
-			else
-				printf("Não existe uma figura/nó com o código informado!");
-            break;
+			while (1) {
+				printf("1 - Buscar figuras pelo código único.\n");
+				printf("2 - Buscar figuras pelo tipo.\n");
+				printf("0 - Sair.\n");
+				printf("A sua opção é: ");
+				scanf (" %c", &opt_c);
+				opt_i = opt_c - '0';
+				if (opt_i == 1) {
+					printf("Digite o código da figura: ");
+					int cod; scanf (" %d", &cod);
+					printf("\n\n");
+					if(result = buscar_figura (cod, arv_g)) 
+						imprimir_info_figura (result, buscar_figura_pai (cod, arv_g, NULL));
+					else
+						printf("Não existe figura com o código informado!");
+					printf("\n\n");
+					break;
+				} else if (opt_i == 2) {
+					while (1) {
+						printf("Escolha o tipo da figura:\n");
+						printf("1 - TRI.\n");
+						printf("2 - RET.\n");
+						printf("3 - TRA.\n");
+						printf("4 - CIR.\n");
+						printf("5 - QUA.\n");
+						printf("0 - Sair.\n");
+						printf("A sua opção é: ");
+						scanf (" %c", &opt_c);
+						opt_i = opt_c - '0';
+						if (opt_i == 1 || 
+							opt_i == 2 || 
+							opt_i == 3 || 
+							opt_i == 4 || 
+							opt_i == 5) {
+							int *count_fig = (int *) malloc (sizeof(int));
+							*count_fig = 0;
+							if (res_tp = buscar_figura_tipo (opt_i-1, count_fig, arv_g, NULL)) {
+								printf("\n");
+								printf("Total de %d figura(s) deste tipo.\n", *count_fig);
+								TAG_T *aux_r_tp = res_tp;
+								while (aux_r_tp) {
+									printf("\n");
+									imprimir_info_figura(aux_r_tp->figura, buscar_figura_pai (aux_r_tp->figura->cod, arv_g, NULL));
+									aux_r_tp = aux_r_tp->prox;
+								}
+								printf("\n\n");
+								free(count_fig);
+							} else
+								printf("Não existem figuras deste tipo.\n");
+							break;
+						} else if (opt_i == 0) {
+							break;
+						} else {
+							printf("Opção inválida!\n");
+						}
+					}
+				} else if (opt_i == 0) {
+					break;
+				} else {
+					printf("Opção inválida!\n");
+				}
+			}
+			break;
         
-		case 'b':
+		case 2:
             if (!arv_g) {printf ("Árvore genérica não existe!\n"); break;}
-			printf("Digite qualquer coisa (ou apenas ENTER) para informações a partir da raiz.\n");
-			printf("Digite 's' para informações de uma subarvore no modo simples.\n");
-			printf("Digite 'v' para informações de uma subarvore no modo completo.\n");
-			printf("Digite 'n' para informações de um nó em particular.\n");
-			printf("A opção é: ");
-			scanf (" %c", &opt);
-            if ((opt == 's') || (opt == 'v') || (opt == 'n')) {
-				printf("Digite o código da figura/nó: ");
-				scanf (" %d", &cod);
+			while (1) {
+				printf("1 - Modo SIMPLES : Info de toda a árvore.\n");
+				printf("2 - Modo SIMPLES : Info de uma subarvore.\n");
+				printf("3 - Modo COMPLETO: Info de toda a árvore.\n");
+				printf("4 - Modo COMPLETO: Info de uma subarvore.\n");
+				printf("5 - Modo COMPLETO: Info de uma figura em particular.\n");
+				printf("0 - Sair.\n");
+				printf("A opção é: ");
+				scanf (" %c", &opt_c);
+				printf("\n");
+				opt_i = opt_c - '0';
+				if       (opt_i == 1) imprimir_info_subarv_simples (arv_g);
+				else if  (opt_i == 3) imprimir_info_subarv_verbose (arv_g);
+				else if ((opt_i == 2) || 
+					     (opt_i == 4) || 
+					     (opt_i == 5)) {
+					printf("Digite o código da figura/nó: ");
+					int cod; scanf (" %d", &cod);
+					printf("\n\n");
+					if (result = buscar_figura (cod, arv_g)) {
+						if (opt_i == 2) imprimir_info_subarv_simples (result);
+						if (opt_i == 4) imprimir_info_subarv_verbose (result);
+						if (opt_i == 5) imprimir_info_figura (result, buscar_figura_pai (cod, arv_g, NULL));
+					} else 
+						printf("Não existe figura com o código informado!\n");
+				} 
+				else if (opt_i == 0)
+					break;
+				else 
+					printf("Opção inválida!\n");
 				printf("\n\n");
-				if (result = buscar_figura (cod, arv_g)) {
-					if (opt == 's') imprimir_info_subarv_simples (result);
-					if (opt == 'v') imprimir_info_subarv_verbose (result);
-					if (opt == 'n') imprimir_info_figura (result, buscar_figura_pai (cod, arv_g, NULL));
-				} else 
-					printf("Não existe uma figura/nó com o código informado!");
-			} else 
-				imprimir_info_subarv_verbose (arv_g);
+			}
 			break;		
 		
-		case 'c':
+		case 3:
+			
 			if (!arv_g) {printf ("Árvore genérica não existe!\n"); break;}
-			while (1) {
-				printf("Digite um código único para identificar a figura na árvore: ");
-				scanf (" %d", &cod);
-				if (buscar_figura (cod, arv_g))
-					printf("Esse código já existe!\n");
-				else
-					break;
-			}
-			while (1) {
-				printf("Digite o código do pai do novo nó: ");
-				scanf (" %d", &cod_pai);
-				if (!buscar_figura (cod_pai, arv_g))
-					printf("Esse código NÃO existe!\n");
-				else
-					break;
-			}
-			while (1) {
-				int tp_fig, opt_fig;				
-				float *aux_med;
-				printf("Qual tipo de figura você quer inserir?\n");
-				printf("1 - TRI\n");
-				printf("2 - RET\n");
-				printf("3 - TRA\n");
-				printf("4 - CIR\n");
-				printf("5 - QUA\n");
-				printf("0 - Sair\n");
-				printf("Tipo: ");
-				scanf(" %d", &opt_fig); tp_fig = opt_fig-1;
-				medidas = (float *) malloc (sizeof(float)*3);
-				aux_med = medidas;				
-				if (tp_fig == TRI) {
-					while (1) {					
-						printf("Informe a base do triângulo: ");
-						scanf(" %f", aux_med);
-						if (*aux_med <= 0.0) printf ("Por favor, apenas positivos maiores que 0!\n");
-						else 		     break;
-					}						
-					printf("\n");
-					while (1) { 
-						aux_med++;						
-						printf("Informe a altura do triângulo: ");
-						scanf(" %f", aux_med);
-						if (*aux_med <= 0.0) printf ("Por favor, apenas positivos maiores que 0!\n");
-						else                 break;
-					}
-				} else if (tp_fig == RET) {
-					while (1) {					
-						printf("Informe o comprimento do retângulo: ");
-						scanf(" %f", aux_med);
-						if (*aux_med <= 0.0) printf ("Por favor, apenas positivos maiores que 0!\n");
-						else 		     break;
-					}						
-					printf("\n");
-					while (1) { 
-						aux_med++;						
-						printf("Informe a largura do retângulo: ");
-						scanf(" %f", aux_med);
-						if (*aux_med <= 0.0) printf ("Por favor, apenas positivos maiores que 0!\n");
-						else                 break;
-					}
-				} else if (tp_fig == TRA) {
-					while (1) {					
-						printf("Informe uma das bases do trapézio: ");
-						scanf(" %f", aux_med);
-						if (*aux_med <= 0.0) printf ("Por favor, apenas positivos maiores que 0!\n");
-						else 		     break;
-					}						
-					printf("\n");
-					while (1) { 
-						aux_med++;						
-						printf("Informe a outra base do trapézio: ");
-						scanf(" %f", aux_med);
-						if (*aux_med <= 0.0) printf ("Por favor, apenas positivos maiores que 0!\n");
-						else                 break;
-					}
-					printf("\n");
-					while (1) { 
-						aux_med++;						
-						printf("Informe a altura do trapézio: ");
-						scanf(" %f", aux_med);
-						if (*aux_med <= 0.0) printf ("Por favor, apenas positivos maiores que 0!\n");
-						else                 break;
-					}					
-				} else if (tp_fig == CIR) {
-					while (1) { 
-						printf("Informe o raio do círculo: ");
-						scanf(" %f", aux_med);
-						if (*aux_med <= 0.0) printf ("Por favor, apenas positivos maiores que 0!\n");
-						else                 break;
-					}
-				} else if (tp_fig == QUA) {
-					while (1) { 
-						printf("Informe o lado do quadrado: ");
-						scanf(" %f", aux_med);
-						if (*aux_med <= 0.0) printf ("Por favor, apenas positivos maiores que 0!\n");
-						else                 break;
-					}
-				} else if (tp_fig == -1) {
-					free (medidas);
-					break;				
-				} else {
-					printf("Opção inválida!");
+			else {
+				int cod, cod_pai;
+				while (1) {
+					printf("Digite um código único para a figura: ");
+					scanf (" %d", &cod);
+					if (buscar_figura (cod, arv_g))
+						printf("Já existe figura com o código informado!\n");
+					else
+						break;
 				}
-				if (result = inserir_figura (arv_g, cod, cod_pai, tp_fig, medidas)) {
-					printf("Figura inserida com sucesso!\n");
-					free (medidas);
-					imprimir_info_figura (result, buscar_figura_pai (cod, arv_g, NULL));
-				} else {
-					printf("Problemas na inserção da figura! Consulte o suporte.\n");
+				while (1) {
+					printf("Digite o código do pai da nova figura: ");
+					scanf (" %d", &cod_pai);
+					if (!buscar_figura (cod_pai, arv_g))
+						printf("Não existe figura com o código informado!\n");
+					else
+						break;
+				}
+				while (1) {
+					int tp_fig, opt_fig;				
+					printf("Qual tipo de figura você quer inserir?\n");
+					printf("1 - TRI.\n");
+					printf("2 - RET.\n");
+					printf("3 - TRA.\n");
+					printf("4 - CIR.\n");
+					printf("5 - QUA.\n");
+					printf("0 - Sair.\n");
+					printf("Tipo: ");
+					scanf(" %c", &opt_c); 
+					opt_i = opt_c - '0';
+					float *medidas = (float *) malloc (sizeof(float)*3);
+					float *aux_med = medidas;				
+					if (opt_i-1 == TRI) {
+						while (1) {					
+							printf("Informe a base do triângulo: ");
+							scanf(" %f", aux_med);
+							if (*aux_med <= 0.0) 
+								printf ("Por favor, apenas reais positivos!\n");
+							else
+								break;
+						}						
+						while (1) { 
+							aux_med++;						
+							printf("Informe a altura do triângulo: ");
+							scanf(" %f", aux_med);
+							if (*aux_med <= 0.0) 
+								printf ("Por favor, apenas reais positivos!\n");
+							else
+								break;
+						}
+					} else if (opt_i-1 == RET) {
+						while (1) {					
+							printf("Informe o comprimento do retângulo: ");
+							scanf(" %f", aux_med);
+							if (*aux_med <= 0.0) 
+								printf ("Por favor, apenas reais positivos!\n");
+							else
+								break;
+						}						
+						while (1) { 
+							aux_med++;						
+							printf("Informe a largura do retângulo: ");
+							scanf(" %f", aux_med);
+							if (*aux_med <= 0.0) 
+								printf ("Por favor, apenas reais positivos!\n");
+							else
+								break;
+						}
+					} else if (opt_i-1 == TRA) {
+						while (1) {					
+							printf("Informe uma das bases do trapézio: ");
+							scanf(" %f", aux_med);
+							if (*aux_med <= 0.0) 
+								printf ("Por favor, apenas reais positivos!\n");
+							else
+								break;
+						}						
+						while (1) { 
+							aux_med++;						
+							printf("Informe a outra base do trapézio: ");
+							scanf(" %f", aux_med);
+							if (*aux_med <= 0.0) 
+								printf ("Por favor, apenas reais positivos!\n");
+							else
+								break;
+						}
+						while (1) { 
+							aux_med++;						
+							printf("Informe a altura do trapézio: ");
+							scanf(" %f", aux_med);
+							if (*aux_med <= 0.0) 
+								printf ("Por favor, apenas reais positivos!\n");
+							else
+								break;
+						}					
+					} else if (opt_i-1 == CIR) {
+						while (1) { 
+							printf("Informe o raio do círculo: ");
+							scanf(" %f", aux_med);
+							if (*aux_med <= 0.0) 
+								printf ("Por favor, apenas reais positivos!\n");
+							else
+								break;
+						}
+					} else if (opt_i-1 == QUA) {
+						while (1) { 
+							printf("Informe o lado do quadrado: ");
+							scanf(" %f", aux_med);
+							if (*aux_med <= 0.0) 
+								printf ("Por favor, apenas reais positivos!\n");
+							else
+								break;
+						}
+					} else if (opt_i-1 == -1) {
+						free (medidas);
+						break;				
+					} else {
+						printf("Opção inválida!\n");
+					}
+					if (result = inserir_figura (arv_g, cod, cod_pai, tp_fig, medidas)) {
+						printf("Figura inserida com sucesso!\n");
+						free (medidas);
+						imprimir_info_figura (result, buscar_figura_pai (cod, arv_g, NULL));
+					} else {
+						printf("Problemas na inserção da figura! Consulte o suporte.\n");
+					}
 				}
 			}
 			break;
 		
-		case 'd':
+		case 4:
 			if (!arv_g) {printf ("Árvore genérica não existe!\n"); break;}
-			while (1) {
-				printf("Digite o código da figura que você quer remover: ");
-				scanf (" %d", &cod);
-				if (buscar_figura (cod, arv_g))
-					break;
-				else
-					printf("Esse código %d NÃO existe!\n", cod);
-			}
-			while (1) {
-				printf("Agora digite o código da figura para a qual você quer passar os descendentes da figura a ser removida: ");
-				scanf (" %d", &cod_herd);
-				if (buscar_figura (cod_herd, arv_g)) {
-					TAG *raiz_sub = buscar_figura (cod, arv_g);
-					TAG *temp = raiz_sub->irmao;
-					raiz_sub->irmao = NULL;
-					if (buscar_figura (cod_herd, buscar_figura (cod, raiz_sub))) {
-						raiz_sub->irmao = temp;
-						printf("Código %d NÃO permitido, pois faz parte da subárvore cuja \"raiz\" é %d!\n", cod_herd, cod);
-					} else {
-						raiz_sub->irmao = temp;
-						break;
-					}
-				} else
-					printf("Esse código %d NÃO existe!\n", cod_herd);
-			}
-			retirar_figura (arv_g, cod, cod_herd);
-			imprimir_info_subarv_simples (arv_g);
-			break;;
+			else {
+				int cod, cod_herd;
+				while (1) {
+					printf("Digite o código da figura que você quer remover: ");
+					scanf (" %d", &cod);
+					if (buscar_figura(cod,arv_g))
+						if (buscar_figura_pai(cod,arv_g,NULL))
+							break;
+						else
+							printf("o código informado é da RAIZ! Informe outro código.\n");
+					else
+						printf("Não existe figura com o código informado!\n");
+				}
+				while (1) {
+					printf("Digite o código da figura para herdar os descendentes da figura a ser removida: ");
+					scanf (" %d", &cod_herd);
+					if (buscar_figura(cod_herd,arv_g)) {
+						TAG *raiz_sub = buscar_figura(cod,arv_g);
+						TAG *temp = raiz_sub->irmao;
+						raiz_sub->irmao = NULL;
+						if (buscar_figura (cod_herd, buscar_figura (cod, raiz_sub))) {
+							raiz_sub->irmao = temp;
+							printf("Código %d NÃO permitido, pois faz parte da subárvore cuja \"raiz\" é %d!\n", cod_herd, cod);
+						} else {
+							raiz_sub->irmao = temp;
+							break;
+						}
+					} else
+						printf("Não existe figura com o código informado!\n");
+				}
+				retirar_figura(arv_g,cod,cod_herd);
+				imprimir_info_subarv_simples(arv_g);
+			}	
+			break;
 		
-		case 'e':
+		case 5:
 			if (!arv_g) {printf ("Árvore genérica não existe!\n"); break;}
 			while (1) {
-				printf("Confirma que quer destruir a árvore (s/N)?");
-				scanf (" %c", &opt);
-				if (opt == 's' || opt == 'S' || opt == 10 || opt == 13) {
+				printf("Confirma destruir a árvore (s/n)?  ");
+				scanf (" %c", &opt_c);
+				if (opt_c == 'S' || opt_c == 'S'+32){
 					destruir_arvore (arv_g);
 					imprimir_info_subarv_simples (arv_g);
 					*end_arv_g = NULL;
 					break;
-				} else if (opt == 'n' || opt == 'N') {
-					printf("Okay! O seguro morreu de velho!");
+				} else if (opt_c == 'N' || opt_c == 'N'+32) {
+					printf("Destruição adiada!\n");
 					break;
 				} else {
-					printf("Opção inválida!");
+					printf("Opção inválida!\n");
 				}
 			}		
 			break;
 		
-		case 'f':
+		case 6:
 			if (!arv_g) {printf ("Árvore genérica não existe!\n"); break;}
 			while (1) {
 				printf("Digite o código da figura que você quer alterar as dimensões: ");
-				scanf (" %d", &cod);
+				int cod; scanf (" %d", &cod);
 				if (!(result = buscar_figura (cod, arv_g)))
-					printf("Esse código NÃO existe!\n");
+					printf("Não existe figura com o código informado!");
 				else {
 					float medida;
 					if (result->no->tipo == TRI) {
 						TTRI *info = (TTRI *) result->no->info;
 						printf("A medida atual da base do triângulo é %.2f\n", info->base);
-						printf("A medida atual da altura do triângulo é %.2f\n", info->altura);
+						printf("A medida atual da altura do triângulo é %.2f\n\n", info->altura);
 						while (1) {					
-							printf("Digite a nova base do triângulo ou ENTER para mantê-la: ");
+							printf("Digite um novo valor para ");
+							printf("a base "); 
+							printf("do triângulo: ");
 							scanf(" %f", &medida); 
-							if (medida <= 0.0) {printf ("Por favor, apenas positivos maiores que 0!\n");}
-							else 		       {info->base = medida; break;}
+							if (medida <= 0.0)
+								printf ("Por favor, apenas reais positivos!\n");
+							else {
+								info->base = medida; 
+								break;
+							}
 						}						
-						printf("\n");
 						while (1) { 
-							printf("Digite a nova altura do triângulo ou ENTER para mantê-la: ");;
+							printf("Digite um novo valor para ");
+							printf("a altura "); 
+							printf("do triângulo: ");
 							scanf(" %f", &medida);
-							if (medida <= 0.0) {printf ("Por favor, apenas positivos maiores que 0!\n");}
-							else 		       {info->altura = medida; break;}
+							if (medida <= 0.0) 
+								printf ("Por favor, apenas reais positivos!\n");
+							else {
+								info->altura = medida; 
+								break;
+							}
 						}
 						result->no->area = info->base * info->altura/2;
 					} else if (result->no->tipo == RET) {
 						TRET *info = (TRET *) result->no->info;
 						printf("A medida atual da largura do retângulo é %.2f\n", info->largura);
-						printf("A medida atual da comprimento do retângulo é %.2f\n", info->comprimento);
+						printf("A medida atual da comprimento do retângulo é %.2f\n\n", info->comprimento);
 						while (1) {					
-							printf("Digite a nova largura do retângulo ou ENTER para mantê-la: ");
+							printf("Digite um novo valor para ");
+							printf("a largura "); 
+							printf("do retângulo: ");
 							scanf(" %f", &medida); 
-							if (medida <= 0.0) {printf ("Por favor, apenas positivos maiores que 0!\n");}
-							else 		       {info->largura = medida; break;}
+							if (medida <= 0.0) 
+								printf ("Por favor, apenas reais positivos!\n");
+							else {
+								info->largura = medida; 
+								break;
+							}
 						}						
-						printf("\n");
 						while (1) { 
-							printf("Digite o novo comprimento do retângulo ou ENTER para mantê-lo: ");;
+							printf("Digite um novo valor para ");
+							printf("o comprimento "); 
+							printf("do retângulo: ");
 							scanf(" %f", &medida);
-							if (medida <= 0.0) {printf ("Por favor, apenas positivos maiores que 0!\n");}
-							else 		       {info->comprimento = medida; break;}
+							if (medida <= 0.0) 
+								printf ("Por favor, apenas reais positivos!\n");
+							else {
+								info->comprimento = medida; 
+								break;
+							}
 						}
 						result->no->area = info->largura * info->comprimento;
 					} else if (result->no->tipo == TRA) {
 						TTRA *info = (TTRA *) result->no->info;
 						printf("A medida atual de uma das bases do trapézio é %.2f\n", info->base1);
 						printf("A medida atual da outra base do trapézio é %.2f\n", info->base2);
-						printf("A medida atual da altura do trapézio é %.2f\n", info->altura);
+						printf("A medida atual da altura do trapézio é %.2f\n\n", info->altura);
 						while (1) {					
-							printf("Digite um novo valor para uma das bases ou ENTER para mantê-lo: ");
+							printf("Digite um novo valor para ");
+							printf("um das bases "); 
+							printf("do trapézio: ");
 							scanf(" %f", &medida); 
-							if (medida <= 0.0) {printf ("Por favor, apenas positivos maiores que 0!\n");}
-							else 		       {info->base1 = medida; break;}
+							if (medida <= 0.0) 
+								printf ("Por favor, apenas reais positivos!\n");
+							else {
+								info->base1 = medida; 
+								break;
+							}
 						}						
 						while (1) { 
-							printf("Digite um novo valor para a outra base ou ENTER para mantê-lo: ");
+							printf("Digite um novo valor para ");
+							printf("a outra base "); 
+							printf("do trapézio: ");
 							scanf(" %f", &medida);
-							if (medida <= 0.0) {printf ("Por favor, apenas positivos maiores que 0!\n");}
-							else 		       {info->base2 = medida; break;}
+							if (medida <= 0.0) 
+								printf ("Por favor, apenas reais positivos!\n");
+							else {
+								info->base2 = medida; 
+								break;
+							}
 						}
 						while (1) { 
-							printf("Digite a nova altura do trapézio ou ENTER para mantê-la: ");;
+							printf("Digite um novo valor para ");
+							printf("a altura "); 
+							printf("do trapézio: ");
 							scanf(" %f", &medida);
-							if (medida <= 0.0) {printf ("Por favor, apenas positivos maiores que 0!\n");}
-							else 		       {info->altura = medida; break;}
+							if (medida <= 0.0) 
+								printf ("Por favor, apenas reais positivos!\n");
+							else {
+								info->altura = medida; 
+								break;
+							}
 						}
 						result->no->area = (info->base1 + info->base2)*info->altura/2;
 					} else if (result->no->tipo == CIR) {
 						TCIR *info = (TCIR *) result->no->info;
-						printf("A medida atual do raio do círculo é %.2f\n", info->raio);
+						printf("A medida atual do raio do círculo é %.2f\n\n", info->raio);
 						while (1) {					
-							printf("Digite o novo raio do círculo ou ENTER para mantê-lo: ");
+							printf("Digite um novo valor para ");
+							printf("o raio "); 
+							printf("do círculo: ");
 							scanf(" %f", &medida); 
-							if (medida <= 0.0) {printf ("Por favor, apenas positivos maiores que 0!\n");}
-							else 		       {info->raio = medida; break;}
+							if (medida <= 0.0) 
+								printf ("Por favor, apenas reais positivos!\n");
+							else {
+								info->raio = medida; 
+								break;
+							}
 						}
 						result->no->area = info->raio * info->raio * PI/2;
 					} else if (result->no->tipo == QUA) {
 						TQUA *info = (TQUA *) result->no->info;
-						printf("A medida atual do lado do quadrado é %.2f\n", info->lado);
+						printf("A medida atual do lado do quadrado é %.2f\n\n", info->lado);
 						while (1) {					
-							printf("Digite o novo lado do quadrado ou ENTER para mantê-lo: ");
+							printf("Digite um novo valor para ");
+							printf("o lado "); 
+							printf("do quadrado: ");
 							scanf(" %f", &medida); 
-							if (medida <= 0.0) {printf ("Por favor, apenas positivos maiores que 0!\n");}
-							else 		       {info->lado = medida; break;}
+							if (medida <= 0.0) 
+								printf ("Por favor, apenas reais positivos!\n\n");
+							else {
+								info->lado = medida; 
+								break;
+							}
 						}
 						result->no->area = info->lado * info->lado;
 					}
-					printf("A figura modificada possui agora as seguintes informações:\n");
+					printf("A figura modificada possui agora as seguintes informações:\n\n");
 					imprimir_info_figura (result, buscar_figura_pai (cod, arv_g, NULL));
 					break;
 				}
 			}
-			
             break;
 		
-		case 'g':
+		case 7:
 			if (!arv_g) {printf ("Árvore genérica não existe!\n"); break;}
 			arv_bb = destruir_abb (arv_bb);
 			arv_bb = converter_abb (arv_bb, arv_g);
 			imprimir_abb (arv_bb, 1);
 			break;
 		
-		case 'h':
+		case 8:
 			if (!arv_g) {printf ("Árvore genérica não existe!\n"); break;}
 			arv_B = destruir_aB (arv_B);
 			arv_B = converter_aB (arv_B, arv_g);
 			imprimir_aB (arv_B, 0);
 			break;
 		
-		case '0':
+		case 0:
 			resp_usu = 0;
 			printf ("Até mais!\n");
 			destruir_arvore (arv_g);
@@ -1072,6 +1222,30 @@ TAG * buscar_figura_pai (int cod, TAG *ag, TAG *ag_pai) {
 				return ret;
 			else 
 				return buscar_figura_pai (cod, aux->irmao, ag_pai);
+}
+
+TAG_T * buscar_figura_tipo (int tipo, int *c_fig, TAG *ag, TAG_T *lista_fig_tp) {
+	
+	if (!ag)
+		return NULL;
+	
+	TAG_T *aux_l_f_tp = lista_fig_tp;
+	
+	if (ag->no->tipo == tipo) {
+		TAG_T *novo  = (TAG_T *) malloc(sizeof(TAG_T));
+		novo->figura = ag;
+		novo->prox   = lista_fig_tp;
+		aux_l_f_tp   = novo;
+		(*c_fig)++;
+	}
+	
+	if (ag->filho)
+		aux_l_f_tp = buscar_figura_tipo (tipo, c_fig, ag->filho, aux_l_f_tp);
+	
+	if (ag->irmao)
+		aux_l_f_tp = buscar_figura_tipo (tipo, c_fig, ag->irmao, aux_l_f_tp);
+	
+	return aux_l_f_tp;
 }
 
 void imprimir_info_figura (TAG *ag, TAG *ag_pai) {
