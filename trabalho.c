@@ -29,8 +29,7 @@ typedef struct list_arq {
 	int cod_pai;
 	int tp_fig;
 	char nome_fig[4];
-	void *no_info;
-	float area;
+	float *med;
 	struct list_arq *prox;
 } TListArq;
 
@@ -118,7 +117,7 @@ TAG * criar_ag (char *nome_arq);
 TListChar  * inserir_final_list_char  (TListChar  *lista, char  info);
 TListInt   * inserir_final_list_int   (TListInt   *lista, int   info);
 TListFloat * inserir_final_list_float (TListFloat *lista, float info);
-TListArq   * inserir_orden_list_arq   (TListArq   *r_arq, int cod, int c_pai, int t_fig, char *n_fig, void *no_info, float area);
+TListArq   * inserir_orden_list_arq   (TListArq *r_arq, int cod, int c_pai, int t_fig, char *n_fig, float *med);
 void liberar_list_char  (TListChar  *lista);
 void liberar_list_int   (TListInt   *lista);
 void liberar_list_float (TListFloat *lista);
@@ -379,46 +378,14 @@ TAG * criar_ag (char *nome_arq) {
 				
 				} else {
 					
-					float measure[dim_med];
+					float *measure = (float *) malloc (sizeof(float)*dim_med);
 					aux_med = medidas;
 					for (i=0; (i < dim_med) && aux_med; i++) {
 						measure[i] = aux_med->info;
 						aux_med = aux_med->prox;
 					}
 					
-					if (tp_fig == RET) {
-						TRET *no_info = (TRET *) malloc(sizeof(TRET));
-						no_info->largura     = measure[0];
-						no_info->comprimento = measure[1]; 
-						area = no_info->largura * no_info->comprimento;
-						no_info_v = no_info;
-					} else if (tp_fig == QUA) {
-						TQUA *no_info = (TQUA *) malloc(sizeof(TQUA));
-						no_info->lado = measure[0];
-						area = no_info->lado * no_info->lado;
-						no_info_v = no_info;
-					} else if (tp_fig == CIR) {
-						TCIR *no_info = (TCIR *) malloc(sizeof(TCIR));
-						no_info->raio = measure[0];
-						area = no_info->raio * no_info->raio *PI/2;
-						no_info_v = no_info;
-					} else if (tp_fig == TRI) {
-						TTRI *no_info = (TTRI *) malloc(sizeof(TTRI));
-						no_info->base   = measure[0];
-						no_info->altura = measure[1];
-						area = no_info->base * no_info->altura/2;
-						no_info_v = no_info;
-					} else if (tp_fig == TRA) {
-						TTRA *no_info = (TTRA *) malloc(sizeof(TTRA));
-						no_info->base1  = measure[0];
-						no_info->base2  = measure[1];
-						no_info->altura = measure[2];
-						area = (no_info->base1 + no_info->base2) * no_info->altura/2;
-						no_info_v = no_info;
-					}
-					char nome_fig[4]; nome_fig[3] = '\0';
-					for (i=0; i < 4; i++) nome_fig[i] = fig[i];
-					reg_arq = inserir_orden_list_arq (reg_arq, codigo, cod_pai, tp_fig, nome_fig, no_info_v, area);
+					reg_arq = inserir_orden_list_arq (reg_arq, codigo, cod_pai, tp_fig, fig, measure);
 					num_reg_arq++;				
 				}
 				liberar_list_char  (substring); substring = NULL;
@@ -430,19 +397,14 @@ TAG * criar_ag (char *nome_arq) {
 			aux_lin++;
 		}
 	}
-/*		
+/* 		
    	// CHECKPOINT
 	TListArq *reg_arq_aux_check = reg_arq;
    	while (reg_arq_aux_check) {
-		printf("Codigo: %d - Cod.Pai: %d - %s - Medidas: ", reg_arq_aux_check->cod, reg_arq_aux_check->cod_pai, reg_arq_aux_check->nome_fig);
-		if (reg_arq_aux_check->tp_fig == RET) { TRET *no_info = (TRET *) reg_arq_aux_check->no_info; printf("Lado A: %.2f, Lado B: %.2f, Area: %.2f\n", no_info->largura, no_info->comprimento, reg_arq_aux_check->area);}
-		if (reg_arq_aux_check->tp_fig == QUA) { TQUA *no_info = (TQUA *) reg_arq_aux_check->no_info; printf("Lado: %.2f, Area: %.2f\n", no_info->lado, reg_arq_aux_check->area);}
-		if (reg_arq_aux_check->tp_fig == CIR) { TCIR *no_info = (TCIR *) reg_arq_aux_check->no_info; printf("Raio: %.2f, Area: %.2f\n", no_info->raio, reg_arq_aux_check->area);}
-		if (reg_arq_aux_check->tp_fig == TRI) { TTRI *no_info = (TTRI *) reg_arq_aux_check->no_info; printf("Base: %.2f, Altura: %.2f, Area: %.2f\n", no_info->base, no_info->altura, reg_arq_aux_check->area);}
-		if (reg_arq_aux_check->tp_fig == TRA) { TTRA *no_info = (TTRA *) reg_arq_aux_check->no_info; printf("Base A: %.2f, Base B: %.2f, Altura: %.2f, Area: %.2f\n", no_info->base1, no_info->base2, no_info->altura, reg_arq_aux_check->area);}
+		printf("Codigo: %d - Cod.Pai: %d - %s\n", reg_arq_aux_check->cod, reg_arq_aux_check->cod_pai, reg_arq_aux_check->nome_fig);
 		reg_arq_aux_check = reg_arq_aux_check->prox;
 	}
-*/
+ */
 	TListArq *reg_arq_aux = reg_arq;
 	TListInt *cod_pai_list = NULL;
 	char *temp_erro = (char *) malloc (sizeof(char)*300);
@@ -458,7 +420,9 @@ TAG * criar_ag (char *nome_arq) {
 			
 			if (i == 0)  {
 				cod_pai_list = inserir_final_list_int (cod_pai_list, reg_arq_aux->cod_pai);
+				
 				sprintf(temp_erro, "Cód. %d/Cód. Pai %d/Tipo %s: Existência de mais de uma RAIZ (registros com código do pai igual 0).\n", reg_arq_aux->cod, reg_arq_aux->cod_pai, reg_arq_aux->nome_fig);
+				
 			} else if (i == 1) {
 				cod_log_erro = 2;
 				sprintf(log_erro[count_erro], temp_erro);
@@ -491,7 +455,7 @@ TAG * criar_ag (char *nome_arq) {
 		i++;
 	}
 	free (temp_erro);
-	free (cod_pai_list);
+	liberar_list_int (cod_pai_list);
 	
 	if (cod_log_erro) {
 		printf ("Erros encontrados no arquivo de entrada:\n");
@@ -499,71 +463,19 @@ TAG * criar_ag (char *nome_arq) {
 			printf ("%s", log_erro[i]);
 		return NULL;
 	}
-	
-	// INI: CRIA ARVORE
-	TAG *m_adj[num_reg_arq+1]; // = {NULL};
-	for(i=0; i < num_reg_arq+1; m_adj[i++] = NULL);
-	TAG *ant_ag = NULL;
-	int ant_pai = -1;
+
+	TAG *ag = NULL;
 	reg_arq_aux = reg_arq;
-	while (reg_arq_aux) { // matriz (ou vetor) de adjacencias (ETAPA: setar os irmaos)
-
-		TNO *new_no = (TNO *) malloc(sizeof(TNO));
-		new_no->tipo = reg_arq_aux->tp_fig;
-		for (i=0; i < 4; i++) new_no->nome[i] = reg_arq_aux->nome_fig[i]; // new_no->nome = reg_arq_aux->nome_fig;
-		new_no->info = reg_arq_aux->no_info;
-		new_no->area = reg_arq_aux->area;
-
-		TAG *new_ag = (TAG *) malloc(sizeof(TAG));
-		new_ag->cod = reg_arq_aux->cod;
-		new_ag->no  = new_no;
-		new_ag->filho = NULL;
-		new_ag->irmao = NULL;
-
-		if (reg_arq_aux->cod_pai == ant_pai)
-			ant_ag->irmao = new_ag; // adiciona na lista de irmaos (filhos de um mesmo pai)
-		else
-			m_adj[reg_arq_aux->cod_pai] = new_ag; // faz o elemento da matriz (vetor) apontar para o 1o filho
-
-		ant_ag      = new_ag;
-		ant_pai     = reg_arq_aux->cod_pai;
-		reg_arq_aux = reg_arq_aux->prox;
-	}
-/*	// CHECKPOINT
-	int z;
-	for(z=0; z < num_reg_arq+1; z++) {
-		TAG *temp = m_adj[z];
-		printf ("Pai %d:", z);
-		if (!m_adj[z]) printf(" NULL");
-		else for (; temp; temp = temp->irmao) printf(" %d", temp->cod);
-		printf ("\n");
-	}
-*/
-	setar_pais_filhos_ag (m_adj, 0); // matriz (ou vetor) de adjacencias (ETAPA: setar pais e filhos)
-/*  // CHECKPOINT
-	TAG *teste_1 = m_adj[1];
-	while (teste_1) {
-		if (teste_1->cod == 4) {
-			printf ("Os filhos de %d: ", teste_1->cod);
-			TAG *teste_2 = teste_1->filho;
-			while (teste_2) {
-				printf ("%d ", teste_2->cod);
-				teste_2 = teste_2->irmao;
-			}
-		}
-		teste_1 = teste_1->irmao;
-	}
- */
-	// FIM: CRIA ARVORE
-
+	for(; reg_arq_aux; reg_arq_aux = reg_arq_aux->prox)
+		ag = inserir_figura(ag,reg_arq_aux->cod, reg_arq_aux->cod_pai, reg_arq_aux->tp_fig, reg_arq_aux->med);
+		
 	free (linha);
 	liberar_list_arq (reg_arq);
-	log_erro = (char **) malloc (sizeof(char *)*1000);
-	for (i=0; i < count_erro; i++) free(log_erro[i]);
+	for (i=0; i < 1000; i++) free(log_erro[i]);
 	free(log_erro);
 	fclose (fp);
 	
-	return m_adj[0];
+	return ag;
 }
 
 TListChar * inserir_final_list_char (TListChar *lista, char info) {
@@ -617,8 +529,9 @@ TListFloat * inserir_final_list_float (TListFloat *lista, float info) {
 	return lista;
 }
 
-TListArq * inserir_orden_list_arq (TListArq *r_arq, int cod, int c_pai, int t_fig, char *n_fig, void *no_info, float area) {
+TListArq * inserir_orden_list_arq (TListArq *r_arq, int cod, int c_pai, int t_fig, char *n_fig, float *med) {
 
+	
 	if ((!r_arq) || (r_arq->cod_pai > c_pai)) {
 
 		TListArq *novo = (TListArq *) malloc (sizeof(TListArq));
@@ -626,15 +539,14 @@ TListArq * inserir_orden_list_arq (TListArq *r_arq, int cod, int c_pai, int t_fi
 		novo->cod_pai  = c_pai;
 		novo->tp_fig   = t_fig;
 		int i;
-		for (i=0; i < 4; i++) novo->nome_fig[i] = n_fig[i]; // novo->nome_fig = n_fig;
-		novo->no_info  = no_info;
-		novo->area     = area;
+		for (i=0; i < 4; i++) novo->nome_fig[i] = n_fig[i];
+		novo->med      = med;
 		novo->prox     = r_arq;
 			
 		return novo;
 	}
-
-	r_arq->prox = inserir_orden_list_arq (r_arq->prox, cod, c_pai, t_fig, n_fig, no_info, area);
+	
+	r_arq->prox = inserir_orden_list_arq (r_arq->prox, cod, c_pai, t_fig, n_fig, med);
 
 	return r_arq;
 }
@@ -667,6 +579,7 @@ void liberar_list_arq (TListArq *lista) {
 
 	if (lista) {
 		liberar_list_arq (lista->prox);
+		free (lista->med);
 		free (lista);
 	}
 }
@@ -804,10 +717,8 @@ int iniciar_menu (TAG **end_arv_g, TABB **end_arv_bb, TAB **end_arv_B) {
 				opt_i = opt_c - '0';
 				if       (opt_i == 1) imprimir_info_subarv_simples (arv_g);
 				else if  (opt_i == 3) imprimir_info_subarv_verbose (arv_g);
-				else if ((opt_i == 2) || 
-					     (opt_i == 4) || 
-					     (opt_i == 5)) {
-					printf("Digite o código da figura/nó: ");
+				else if ((opt_i == 2) || (opt_i == 4) || (opt_i == 5)) {
+					printf("Digite o código da figura: ");
 					int cod; scanf (" %d", &cod);
 					printf("\n\n");
 					if (result = buscar_figura (cod, arv_g)) {
@@ -847,7 +758,6 @@ int iniciar_menu (TAG **end_arv_g, TABB **end_arv_bb, TAB **end_arv_B) {
 						break;
 				}
 				while (1) {
-					int tp_fig, opt_fig;				
 					printf("Qual tipo de figura você quer inserir?\n");
 					printf("1 - TRI.\n");
 					printf("2 - RET.\n");
@@ -945,14 +855,24 @@ int iniciar_menu (TAG **end_arv_g, TABB **end_arv_bb, TAB **end_arv_B) {
 						free (medidas);
 						break;				
 					} else {
+						free (medidas);
 						printf("Opção inválida!\n");
 					}
-					if (result = inserir_figura (arv_g, cod, cod_pai, tp_fig, medidas)) {
-						printf("Figura inserida com sucesso!\n");
-						free (medidas);
-						imprimir_info_figura (result, buscar_figura_pai (cod, arv_g, NULL));
-					} else {
-						printf("Problemas na inserção da figura! Consulte o suporte.\n");
+					if ((opt_i-1 == TRI) || 
+					    (opt_i-1 == RET) || 
+						(opt_i-1 == TRA) || 
+						(opt_i-1 == CIR) || 
+						(opt_i-1 == QUA)){
+						if (arv_g = inserir_figura (arv_g, cod, cod_pai, opt_i-1, medidas)) {
+							free (medidas);
+							if (result = buscar_figura(cod,arv_g)) {
+								printf("Figura inserida com sucesso!\n");
+								imprimir_info_figura (result, buscar_figura_pai(cod, arv_g, NULL));
+							}
+						} else {
+							printf("Problemas na inserção da figura! Consulte o suporte.\n");
+						}
+						break;
 					}
 				}
 			}
@@ -969,7 +889,7 @@ int iniciar_menu (TAG **end_arv_g, TABB **end_arv_bb, TAB **end_arv_B) {
 						if (buscar_figura_pai(cod,arv_g,NULL))
 							break;
 						else
-							printf("o código informado é da RAIZ! Informe outro código.\n");
+							printf("O código informado é da RAIZ! Informe outro código.\n");
 					else
 						printf("Não existe figura com o código informado!\n");
 				}
@@ -1203,10 +1123,10 @@ TAG * buscar_figura (int cod, TAG *ag) {
 		if (aux->cod == cod)
 			return aux;
 		else 
-			if (ret = buscar_figura (cod, aux->filho))
+			if (ret = buscar_figura(cod,aux->filho))
 				return ret;
 			else 
-				return buscar_figura (cod, aux->irmao);
+				return buscar_figura(cod,aux->irmao);
 }
 
 TAG * buscar_figura_pai (int cod, TAG *ag, TAG *ag_pai) {
@@ -1218,10 +1138,10 @@ TAG * buscar_figura_pai (int cod, TAG *ag, TAG *ag_pai) {
 		if (aux->cod == cod)
 			return ag_pai;
 		else 
-			if (ret = buscar_figura_pai (cod, aux->filho, aux))
+			if (ret = buscar_figura_pai(cod, aux->filho,aux))
 				return ret;
 			else 
-				return buscar_figura_pai (cod, aux->irmao, ag_pai);
+				return buscar_figura_pai(cod, aux->irmao,ag_pai);
 }
 
 TAG_T * buscar_figura_tipo (int tipo, int *c_fig, TAG *ag, TAG_T *lista_fig_tp) {
@@ -1538,7 +1458,6 @@ TAG * inserir_figura (TAG *ag, int cod, int cod_pai, int tp_f, float *med) {
 		no_info_v = no_info;			
 	} else if (tp_f == TRI) {			
 		TTRI *no_info = (TTRI *) malloc(sizeof(TTRI));			
-		printf("Oi\n");
 		no_info->base   = med[0];			
 		no_info->altura = med[1];			
 		nome_f[0] = 'T'; nome_f[1] = 'R'; nome_f[2] = 'I';
@@ -1566,13 +1485,21 @@ TAG * inserir_figura (TAG *ag, int cod, int cod_pai, int tp_f, float *med) {
 	new_ag->filho = NULL;
 	new_ag->irmao = NULL;
 		
-	TAG *aux = buscar_figura (cod_pai, ag);
-	
-	aux = aux->filho;
-	while (aux->irmao) aux = aux->irmao;
-	aux->irmao = new_ag;
-	
-	return new_ag;
+	if (!ag)
+		return new_ag; 
+	else {
+		TAG *aux = buscar_figura (cod_pai, ag);
+		if (aux) {
+			if (!aux->filho)  // Nao tem filhos
+				aux->filho = new_ag;
+			else { // Possui filhos
+				aux = aux->filho;
+				while (aux->irmao) aux = aux->irmao;
+				aux->irmao = new_ag;
+			} 			
+		}
+		return ag;
+	}
 }
 void retirar_figura (TAG *ag, int cod_r, int cod_h) {
 
