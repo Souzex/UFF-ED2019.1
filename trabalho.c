@@ -255,7 +255,8 @@ TAG * criar_ag (char *nome_arq) {
 				if (cod_log_erro == 10) {
 					sprintf(log_erro[count_erro], "Caracteres NÃO permitidos em %s", linha);
 					count_erro++;
-					break; // Segue para a proxima linha do arquivo
+					cod_log_erro = -1; // Tem erro nessa iteracao, mas NAO sabemos o erro da proxima iteracao.
+					break; // Segue para a proxima linha do arquivo.
 				} else {
 					count_barra++;
 					if (count_barra == 1) codigo  = aux_cod;
@@ -286,6 +287,7 @@ TAG * criar_ag (char *nome_arq) {
 					if (cod_log_erro == 6) {
 						sprintf(log_erro[count_erro], "Cód. %d/Cód. Pai %d: Tipo de figura não permitido ('%s').\n", codigo, cod_pai, fig);
 						count_erro++;
+						cod_log_erro = -1; // Tem erro nessa iteracao, mas NAO sabemos o erro da proxima iteracao.
 						break; // Segue para a proxima linha do arquivo
 					}
 					
@@ -321,6 +323,7 @@ TAG * criar_ag (char *nome_arq) {
 					if (cod_log_erro == 10) {
 						sprintf(log_erro[count_erro], "Caracteres NÃO permitidos em %s", linha);
 						count_erro++;
+						cod_log_erro = -1; // Tem erro nessa iteracao, mas NAO sabemos o erro da proxima iteracao.
 						break; // Segue para a proxima linha do arquivo
 					} else {
 						medidas = inserir_final_list_float (medidas, med);
@@ -356,36 +359,30 @@ TAG * criar_ag (char *nome_arq) {
 				if (cod_log_erro == 10) {
 					sprintf(log_erro[count_erro], "Caracteres NÃO permitidos em %s", linha);
 					count_erro++;
-					liberar_list_char  (substring); substring = NULL;
-					liberar_list_float (medidas);   medidas   = NULL;
-					break; // Segue para a proxima linha do arquivo
+					cod_log_erro = -1; // Tem erro nessa iteracao, mas NAO sabemos o erro da proxima iteracao.
 				} else {
 					medidas = inserir_final_list_float (medidas, med);
-				}
-								
-				TListFloat *aux_med = NULL;
-				float area = 0.0;
-				void *no_info_v = NULL;
-													
-				aux_med = medidas;
-				for (i=0; aux_med; aux_med = aux_med->prox) i++;
-				if (i != dim_med) {
-					
-					cod_log_erro = 9;
-					sprintf(log_erro[count_erro], "Cód. %d/Cód. Pai %d/Tipo %s: Quantidade de medidas incompatível com o tipo da figura (%d quando deveria ser %d).\n", codigo, cod_pai, fig, i, dim_med);
-					count_erro++;
 				
-				} else {
-					
-					float *measure = (float *) malloc (sizeof(float)*dim_med);
+					TListFloat *aux_med = NULL;
+					float area = 0.0;
+					void *no_info_v = NULL;
+														
 					aux_med = medidas;
-					for (i=0; (i < dim_med) && aux_med; i++) {
-						measure[i] = aux_med->info;
-						aux_med = aux_med->prox;
+					for (i=0; aux_med; aux_med = aux_med->prox) i++;
+					if (i != dim_med) {
+						cod_log_erro = 9;
+						sprintf(log_erro[count_erro], "Cód. %d/Cód. Pai %d/Tipo %s: Quantidade de medidas incompatível com o tipo da figura (%d quando deveria ser %d).\n", codigo, cod_pai, fig, i, dim_med);
+						count_erro++;
+					} else {
+						float *measure = (float *) malloc (sizeof(float)*dim_med);
+						aux_med = medidas;
+						for (i=0; (i < dim_med) && aux_med; i++) {
+							measure[i] = aux_med->info;
+							aux_med = aux_med->prox;
+						}
+						reg_arq = inserir_orden_list_arq (reg_arq, codigo, cod_pai, tp_fig, fig, measure);
+						num_reg_arq++;				
 					}
-					
-					reg_arq = inserir_orden_list_arq (reg_arq, codigo, cod_pai, tp_fig, fig, measure);
-					num_reg_arq++;				
 				}
 				liberar_list_char  (substring); substring = NULL;
 				liberar_list_float (medidas);   medidas   = NULL;
