@@ -123,7 +123,6 @@ void liberar_list_int   (TListInt   *lista);
 void liberar_list_float (TListFloat *lista);
 void liberar_list_arq   (TListArq   *lista);
 TListInt   * buscar_list_int (TListInt *lista, int info);
-void setar_pais_filhos_ag (TAG **adj, int index);
 
 // ARVORE GENERICA (AG): FUNCOES DE BUSCA
 TAG   * buscar_figura (int cod, TAG *ag);
@@ -592,18 +591,6 @@ TListInt * buscar_list_int (TListInt *lista, int info) {
 		return lista;
 	else 
 		return buscar_list_int (lista->prox, info);
-}
-
-void setar_pais_filhos_ag (TAG **adj, int index) {
-
-	if (adj[index]) {
-		TAG *ag = adj[index];
-		while (ag) {
-			ag->filho = adj[ag->cod];
-			setar_pais_filhos_ag (adj, ag->cod);
-			ag = ag->irmao;
-		}
-	}
 }
 
 int iniciar_menu (TAG **end_arv_g, TABB **end_arv_bb, TAB **end_arv_B) {
