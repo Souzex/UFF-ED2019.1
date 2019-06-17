@@ -76,6 +76,12 @@ typedef struct ag_t {
 	struct ag_t *prox;
 } TAG_T;
 
+typedef struct chave {
+	int cod;
+	TNO *no;
+	struct chave *prox;
+} TKEY;
+
 typedef struct abb {
 	int cod;
 	TNO *no;
@@ -84,16 +90,10 @@ typedef struct abb {
     struct abb *dir;
 } TABB;
 
-typedef struct chave {
-	int cod;
-	TNO *no;
-	struct chave *prox;
-} TKEY;
-
 typedef struct aB {
 	int nchaves;
 	int folha;
-	TKEY *chave;
+	int *chave;
   	struct aB **filho;
 } TAB;
 
@@ -155,11 +155,11 @@ int maior_int (int l, int r);
 // ARVORE B (AB): FUNCAO DE CONVERSAO E DEMAIS FUNCOES
 TAB * destruir_aB  (TAB *aB);
 TAB * converter_aB (TAB *aB, TAG *ag);
-TAB * inserir_aB (TAB *aB, TAG *ag, int t);
+TAB * inserir_aB (TAB *aB, int cod, int t);
 TAB * buscar_aB (TAB *aB, int cod);
 TAB * criar_aB (int t);
 TAB * dividir_aB (TAB *aB_aux, int cod, TAB* aB, int t);
-TAB * inserir_n_compl_aB (TAB *aB, TAG *ag, int t);
+TAB * inserir_n_compl_aB (TAB *aB, int cod, int t);
 void imprimir_aB (TAB *aB, int andar);
 
 int main (int argc, char* argv[]) {
@@ -186,6 +186,7 @@ TAG * criar_ag (char *nome_arq) {
 	int i;
 	int num_reg_arq = 0;
 	TListArq *reg_arq = NULL;
+	TListInt *cod_pai_list_alter = NULL;
 	char *linha = (char *) malloc(200);
 	int cod_log_erro = 0, count_erro = 0;
 	char **log_erro;
@@ -349,6 +350,7 @@ TAG * criar_ag (char *nome_arq) {
 						}
 						info = aux_substr->info - '0';
 						med += info*pot10;
+					} else if (aux_substr->info == 13) {
 					} else {
 						cod_log_erro = 10;
 						break;
@@ -381,6 +383,7 @@ TAG * criar_ag (char *nome_arq) {
 							aux_med = aux_med->prox;
 						}
 						reg_arq = inserir_orden_list_arq (reg_arq, codigo, cod_pai, tp_fig, fig, measure);
+						cod_pai_list_alter = inserir_final_list_int (cod_pai_list_alter, codigo);
 						num_reg_arq++;				
 					}
 				}
@@ -403,7 +406,9 @@ TAG * criar_ag (char *nome_arq) {
  */
 	TListArq *reg_arq_aux = reg_arq;
 	TListInt *cod_pai_list = NULL;
-	char *temp_erro = (char *) malloc (sizeof(char)*300);
+	int cod_i0, cod_pai_i0;
+	char nome_fig_i0[4];
+	
 	for (i=0; reg_arq_aux; reg_arq_aux = reg_arq_aux->prox) {
 		
 		if ((reg_arq_aux->cod_pai != 0) && (i == 0)) {
@@ -416,12 +421,12 @@ TAG * criar_ag (char *nome_arq) {
 			
 			if (i == 0)  {
 				cod_pai_list = inserir_final_list_int (cod_pai_list, reg_arq_aux->cod_pai);
-				
-				sprintf(temp_erro, "Cód. %d/Cód. Pai %d/Tipo %s: Existência de mais de uma RAIZ (registros com código do pai igual 0).\n", reg_arq_aux->cod, reg_arq_aux->cod_pai, reg_arq_aux->nome_fig);
-				
+				cod_i0     = reg_arq_aux->cod; 
+				cod_pai_i0 = reg_arq_aux->cod_pai; 
+				int j; for(j=0;j<4;j++) nome_fig_i0[j] = reg_arq_aux->nome_fig[j];
 			} else if (i == 1) {
 				cod_log_erro = 2;
-				sprintf(log_erro[count_erro], temp_erro);
+				sprintf(log_erro[count_erro], "Cód. %d/Cód. Pai %d/Tipo %s: Existência de mais de uma RAIZ (registros com código do pai igual 0).\n", cod_i0, cod_pai_i0, nome_fig_i0);
 				count_erro++;
 				sprintf(log_erro[count_erro], "Cód. %d/Cód. Pai %d/Tipo %s: Existência de mais de uma RAIZ (registros com código do pai igual 0).\n", reg_arq_aux->cod, reg_arq_aux->cod_pai, reg_arq_aux->nome_fig);
 				count_erro++;
@@ -443,27 +448,33 @@ TAG * criar_ag (char *nome_arq) {
 			} else if (buscar_list_int (cod_pai_list, reg_arq_aux->cod_pai)) {
 				cod_pai_list = inserir_final_list_int (cod_pai_list, reg_arq_aux->cod);
 			} else {
-				cod_log_erro = 5;
-				sprintf(log_erro[count_erro], "Cód. %d/Cód. Pai %d/Tipo %s: Código pai inexistente.\n", reg_arq_aux->cod, reg_arq_aux->cod_pai, reg_arq_aux->nome_fig);
-				count_erro++;
+				if (!buscar_list_int (cod_pai_list_alter, reg_arq_aux->cod_pai)) {
+					cod_log_erro = 6;
+					sprintf(log_erro[count_erro], "Cód. %d/Cód. Pai %d/Tipo %s: Código pai inexistente.\n", reg_arq_aux->cod, reg_arq_aux->cod_pai, reg_arq_aux->nome_fig);
+					count_erro++;
+				} else {
+					cod_log_erro = 5;
+				}
 			}
 		}
 		i++;
 	}
-	free (temp_erro);
 	liberar_list_int (cod_pai_list);
+	liberar_list_int (cod_pai_list_alter);
 	
 	if (cod_log_erro) {
 		printf ("Erros encontrados no arquivo de entrada:\n");
 		for (i=0; i < count_erro; i++)
 			printf ("%s", log_erro[i]);
+		if (cod_log_erro == 5) 
+			printf("ATENÇÃO: Verifique se há ciclos na árvore!\n");
 		return NULL;
 	}
 
 	TAG *ag = NULL;
 	reg_arq_aux = reg_arq;
 	for(; reg_arq_aux; reg_arq_aux = reg_arq_aux->prox)
-		ag = inserir_figura(ag,reg_arq_aux->cod, reg_arq_aux->cod_pai, reg_arq_aux->tp_fig, reg_arq_aux->med);
+		ag = inserir_figura(ag, reg_arq_aux->cod, reg_arq_aux->cod_pai, reg_arq_aux->tp_fig, reg_arq_aux->med);
 		
 	free (linha);
 	liberar_list_arq (reg_arq);
@@ -1084,9 +1095,9 @@ int iniciar_menu (TAG **end_arv_g, TABB **end_arv_bb, TAB **end_arv_B) {
 		case 0:
 			resp_usu = 0;
 			printf ("Até mais!\n");
-			destruir_arvore (arv_g);
 			destruir_abb (arv_bb);
 			destruir_aB (arv_B);
+			destruir_arvore (arv_g);
 			break;
 		
 		default:
@@ -1550,16 +1561,12 @@ TAB * destruir_aB (TAB *aB) {
 	if (!aB->folha)
       for(i = 0; i <= aB->nchaves; i++) 
 		  destruir_aB (aB->filho[i]);
-    
-	while (aB->chave) {
-		TKEY *temp = aB->chave->prox;
-		free(aB->chave);
-		aB->chave = temp;
-	}
-	free(aB->filho);
+    free(aB->chave);
+    free(aB->filho);
     free(aB);
     return NULL;
   }
+
 }
 
 TAB * converter_aB (TAB *aB, TAG *ag) {
@@ -1573,20 +1580,19 @@ TAB * converter_aB (TAB *aB, TAG *ag) {
 				aux = aux->irmao;
 			}
 		}
-		return inserir_aB (aB, ag, t);
+		return inserir_aB (aB, ag->cod, t);
 	} else
 		return NULL;
 }
 
-TAB * inserir_aB (TAB *aB, TAG *ag, int t) {
+TAB * inserir_aB (TAB *aB, int cod, int t) {
 	
-	if (buscar_aB(aB,ag->cod)) 
+	if (buscar_aB(aB,cod)) 
 		return aB;
   
 	if (!aB){
 		aB = criar_aB (t);
-		aB->chave->cod = ag->cod;
-		aB->chave->no  = ag->no;
+		aB->chave[0] = cod;
 		aB->nchaves = 1;
 		return aB;
 	}
@@ -1597,10 +1603,11 @@ TAB * inserir_aB (TAB *aB, TAG *ag, int t) {
 		aB_aux->folha = 0;
 		aB_aux->filho[0] = aB;
 		aB_aux = dividir_aB (aB_aux,1,aB,t);
-		aB_aux = inserir_n_compl_aB (aB_aux,ag,t);
+		aB_aux = inserir_n_compl_aB (aB_aux,cod,t);
 		return aB_aux;
 	}
-	aB = inserir_n_compl_aB (aB,ag,t);
+  
+	aB = inserir_n_compl_aB (aB,cod,t);
 	return aB;		
 }
 
@@ -1612,13 +1619,9 @@ TAB * buscar_aB (TAB *aB, int cod) {
 		return resp;
   
 	int i = 0;
-	TKEY *aB_key = aB->chave+i;
-	while (i < aB->nchaves && cod > aB_key->cod) {
-		i++;
-		aB_key = aB->chave+i;
-	}
-	
-	if (i < aB->nchaves && cod == aB_key->cod) 
+	while (i < aB->nchaves && cod > aB->chave[i]) i++;
+  
+	if (i < aB->nchaves && cod == aB->chave[i]) 
 		return aB;
   
 	if (aB->folha) 
@@ -1629,26 +1632,13 @@ TAB * buscar_aB (TAB *aB, int cod) {
 
 TAB * criar_aB (int t) {
   
-	int i;
 	TAB* novo = (TAB*) malloc(sizeof(TAB));
 	novo->nchaves = 0;
-	
-	TKEY *head = NULL, *ant = NULL;
-	for (i=0; i<(2*t-1); i++) {
-		TKEY *chave = (TKEY *) malloc(sizeof(TKEY));	
-		chave->cod  = 0;
-		chave->no   = NULL;
-		chave->prox = NULL;
-		if (i==0) head = chave;
-		else ant->prox = chave;
-		ant = chave;
-	}
-	novo->chave = head;
-	
+	novo->chave = (int*) malloc(sizeof(int)*(2*t-1));
 	novo->folha = 1;
-	novo->filho = (TAB **) malloc(sizeof(TAB *)*(2*t));
+	novo->filho = (TAB**) malloc(sizeof(TAB*)*(2*t));
+	int i;
 	for (i=0; i<(t*2); i++) novo->filho[i] = NULL;
-	
 	return novo;
 }
 
@@ -1659,12 +1649,8 @@ TAB * dividir_aB (TAB *aB_aux, int cod, TAB* aB, int t) {
 	novo_aB->folha   = aB->folha;
 	int j;
   
-	for(j=0; j < t-1; j++) {
-		TKEY *novo_aB_key = novo_aB->chave+j;
-		TKEY *aB_key      = aB->chave+j+t;
-		novo_aB_key->cod  = aB_key->cod;
-		novo_aB_key->no   = aB_key->no;
-	}
+	for(j=0; j < t-1; j++) 
+		novo_aB->chave[j] = aB->chave[j+t];
   
 	if(!aB->folha) {
 		for (j = 0; j < t; j++){
@@ -1678,56 +1664,34 @@ TAB * dividir_aB (TAB *aB_aux, int cod, TAB* aB, int t) {
 		aB_aux->filho[j+1] = aB_aux->filho[j];
   
 	aB_aux->filho[cod] = novo_aB;
-	for (j = aB_aux->nchaves; j >= cod; j--) {
-		TKEY *aB_aux_key1 = aB_aux->chave+j;
-		TKEY *aB_aux_key2 = aB_aux->chave+j-1;
-		aB_aux_key1->cod  = aB_aux_key2->cod;
-		aB_aux_key1->no   = aB_aux_key2->no;
-	}
-	
-	TKEY *aB_aux_key = aB_aux->chave+cod-1;
-	TKEY *aB_key     = aB->chave+t-1;
-	aB_aux_key->cod  = aB_key->cod;
-	aB_aux_key->no   = aB_key->no;
-	
+	for (j = aB_aux->nchaves; j >= cod; j--) 
+		aB_aux->chave[j] = aB_aux->chave[j-1];
+  
+	aB_aux->chave[cod-1] = aB->chave[t-1];
 	aB_aux->nchaves++;
-	
 	return aB_aux;
 }
 
-TAB * inserir_n_compl_aB (TAB *aB, TAG *ag, int t) {
+TAB * inserir_n_compl_aB (TAB *aB, int cod, int t) {
   
 	int i = aB->nchaves-1;
 	  
 	if (aB->folha) {
-		TKEY *aB_key1 = aB->chave+i;
-		TKEY *aB_key2 = aB->chave+i+1;
-		while((i >= 0) && (ag->cod < aB_key1->cod)) {
-			aB_key2->cod = aB_key1->cod;
-			aB_key2->no  = aB_key1->no;
+		while((i>=0) && (cod < aB->chave[i])) {
+			aB->chave[i+1] = aB->chave[i];
 			i--;
-			aB_key1 = aB->chave+i;
-			aB_key2 = aB->chave+i+1;
 		}
-		TKEY *aB_key = aB->chave+i+1;
-		aB_key->cod = ag->cod;
-		aB_key->no  = ag->no;
+		aB->chave[i+1] = cod;
 		aB->nchaves++;
 		return aB;
 	}
-	
-	TKEY *aB_key = aB->chave+i;
-	while((i>=0) && (ag->cod < aB_key->cod)) {
-		i--;
-		aB_key = aB->chave+i;
-	}
+	while((i>=0) && (cod < aB->chave[i])) i--;
 	i++;
 	if (aB->filho[i]->nchaves == (2*t-1)) {
 		aB = dividir_aB (aB, (i+1), aB->filho[i], t);
-		TKEY *aB_key = aB->chave+i;
-		if(ag->cod > aB_key->cod) i++;
+		if(cod > aB->chave[i]) i++;
 	}
-	aB->filho[i] = inserir_n_compl_aB (aB->filho[i], ag, t);
+	aB->filho[i] = inserir_n_compl_aB (aB->filho[i], cod, t);
 	return aB;
 }
 
@@ -1738,8 +1702,7 @@ void imprimir_aB (TAB *aB, int andar) {
 		for (i=0; i <= aB->nchaves-1; i++) {
 			imprimir_aB (aB->filho[i],andar+1);
 			for (j=0; j <= andar; j++) printf("   ");
-			TKEY *aB_key = aB->chave+i;
-			printf("%d\n", aB_key->cod);
+			printf("%d\n", aB->chave[i]);
 		}
 		imprimir_aB (aB->filho[i], andar+1);
 	}
