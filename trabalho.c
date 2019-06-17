@@ -79,7 +79,6 @@ typedef struct ag_t {
 typedef struct chave {
 	int cod;
 	TNO *no;
-	struct chave *prox;
 } TKEY;
 
 typedef struct abb {
@@ -93,7 +92,7 @@ typedef struct abb {
 typedef struct aB {
 	int nchaves;
 	int folha;
-	int *chave;
+	TKEY **chave;
   	struct aB **filho;
 } TAB;
 
@@ -155,11 +154,11 @@ int maior_int (int l, int r);
 // ARVORE B (AB): FUNCAO DE CONVERSAO E DEMAIS FUNCOES
 TAB * destruir_aB  (TAB *aB);
 TAB * converter_aB (TAB *aB, TAG *ag);
-TAB * inserir_aB (TAB *aB, int cod, int t);
+TAB * inserir_aB (TAB *aB, TAG *ag, int t);
 TAB * buscar_aB (TAB *aB, int cod);
 TAB * criar_aB (int t);
 TAB * dividir_aB (TAB *aB_aux, int cod, TAB* aB, int t);
-TAB * inserir_n_compl_aB (TAB *aB, int cod, int t);
+TAB * inserir_n_compl_aB (TAB *aB, TAG* ag, int t);
 void imprimir_aB (TAB *aB, int andar);
 
 int main (int argc, char* argv[]) {
@@ -350,7 +349,7 @@ TAG * criar_ag (char *nome_arq) {
 						}
 						info = aux_substr->info - '0';
 						med += info*pot10;
-					} else if (aux_substr->info == 13) {
+					} else if (aux_substr->info == 13) { // '/r' ou CR ou CARRIAGE RETURN
 					} else {
 						cod_log_erro = 10;
 						break;
@@ -1711,8 +1710,14 @@ TAB * destruir_aB (TAB *aB) {
     
 	printf("Arv. B: Liberando chaves ");
 	for(i = 0; i < aB->nchaves; i++)
-		printf("%d... ", aB->chave[i]);
+		printf("%d... ", aB->chave[i]->cod);
 	printf("\n");
+	
+	for (i=0; i<(2*t-1); i++) {
+		free(aB->chave[i]->no->info);
+		free(aB->chave[i]->no);
+		free(aB->chave[i]);
+	}
 	free(aB->chave);
     free(aB->filho);
     free(aB);
@@ -1724,42 +1729,79 @@ TAB * destruir_aB (TAB *aB) {
 TAB * converter_aB (TAB *aB, TAG *ag) {
 
 	TAG *aux = NULL;
-	if (ag){
+	if (ag){ 
 		if (ag->filho) {
 			aux = ag->filho;
 			while (aux) {
 				aB = converter_aB (aB, aux);
 				aux = aux->irmao;
 			}
-		}
-		return inserir_aB (aB, ag->cod, t);
+		} 
+		return inserir_aB (aB, ag, t);
 	} else
 		return NULL;
 }
 
-TAB * inserir_aB (TAB *aB, int cod, int t) {
+TAB * inserir_aB (TAB *aB, TAG *ag, int t) {
 	
-	if (buscar_aB(aB,cod)) 
+	int i;
+	if (buscar_aB(aB,ag->cod)) 
 		return aB;
-  
+	
 	if (!aB){
-		aB = criar_aB (t);
-		aB->chave[0] = cod;
-		aB->nchaves = 1;
+		aB = criar_aB (t);  
+		aB->chave[0]->cod = ag->cod;
+		aB->chave[0]->no->tipo = ag->no->tipo;
+		aB->chave[0]->no->area = ag->no->area;
+		for(i=0;i<4;i++) aB->chave[0]->no->nome[i] = ag->no->nome[i];
+		void *info_v;
+		if (ag->no->tipo == TRI) {
+			TTRI *info1   = (TTRI *) malloc (sizeof(TTRI));
+			TTRI *info2   = (TTRI *) ag->no->info;
+			info1->base   = info2->base;
+			info1->altura = info2->altura;
+			info_v = info1;
+		} else if (ag->no->tipo == RET) {
+			TRET *info1        = (TRET *) malloc (sizeof(TRET));
+			TRET *info2        = (TRET *) ag->no->info;
+			info1->largura     = info2->largura;
+			info1->comprimento = info2->comprimento;
+			info_v = info1;
+		} else if (ag->no->tipo == TRA) {
+			TTRA *info1   = (TTRA *) malloc (sizeof(TTRA));
+			TTRA *info2   = (TTRA *) ag->no->info;
+			info1->base1  = info2->base2;
+			info1->base1  = info2->base2;
+			info1->altura = info2->altura;
+			info_v = info1;
+		} else if (ag->no->tipo == CIR) {
+			TCIR *info1 = (TCIR *) malloc (sizeof(TCIR));
+			TCIR *info2 = (TCIR *) ag->no->info;
+			info1->raio = info2->raio;
+			info_v = info1;
+		} else if (ag->no->tipo == QUA) {
+			TQUA *info1 = (TQUA *) malloc (sizeof(TQUA));
+			TQUA *info2 = (TQUA *) ag->no->info;
+			info1->lado = info2->lado;
+			info_v = info1;
+		}
+		aB->chave[0]->no->info = info_v;
+		
+		aB->nchaves = 1; 
 		return aB;
 	}
-  
+	
 	if (aB->nchaves == (2*t)-1) {
-		TAB *aB_aux = criar_aB (t);
+		TAB *aB_aux = criar_aB (t); 
 		aB_aux->nchaves = 0;
 		aB_aux->folha = 0;
 		aB_aux->filho[0] = aB;
-		aB_aux = dividir_aB (aB_aux,1,aB,t);
-		aB_aux = inserir_n_compl_aB (aB_aux,cod,t);
+		aB_aux = dividir_aB (aB_aux,1,aB,t); 
+		aB_aux = inserir_n_compl_aB (aB_aux,ag,t); 
 		return aB_aux;
 	}
-  
-	aB = inserir_n_compl_aB (aB,cod,t);
+	
+	aB = inserir_n_compl_aB (aB,ag,t); 
 	return aB;		
 }
 
@@ -1771,9 +1813,9 @@ TAB * buscar_aB (TAB *aB, int cod) {
 		return resp;
   
 	int i = 0;
-	while (i < aB->nchaves && cod > aB->chave[i]) i++;
+	while (i < aB->nchaves && cod > aB->chave[i]->cod) i++;
   
-	if (i < aB->nchaves && cod == aB->chave[i]) 
+	if (i < aB->nchaves && cod == aB->chave[i]->cod) 
 		return aB;
   
 	if (aB->folha) 
@@ -1784,25 +1826,72 @@ TAB * buscar_aB (TAB *aB, int cod) {
 
 TAB * criar_aB (int t) {
   
+	int i;
 	TAB* novo = (TAB*) malloc(sizeof(TAB));
 	novo->nchaves = 0;
-	novo->chave = (int*) malloc(sizeof(int)*(2*t-1));
+	novo->chave = (TKEY **) malloc(sizeof(TKEY *)*(2*t-1));
+	
+	for (i=0; i<(2*t-1); i++) {
+		novo->chave[i]     = (TKEY *) malloc(sizeof(TKEY));
+		novo->chave[i]->no = (TNO *)  malloc(sizeof(TNO));
+		novo->chave[i]->no->tipo = -1;
+		novo->chave[i]->no->info = NULL;
+	}
+			
 	novo->folha = 1;
 	novo->filho = (TAB**) malloc(sizeof(TAB*)*(2*t));
-	int i;
+	
 	for (i=0; i<(t*2); i++) novo->filho[i] = NULL;
 	return novo;
 }
 
-TAB * dividir_aB (TAB *aB_aux, int cod, TAB* aB, int t) {
+TAB * dividir_aB (TAB *aB_aux, int idx, TAB* aB, int t) {
   
 	TAB *novo_aB = criar_aB (t);
 	novo_aB->nchaves = t - 1;
 	novo_aB->folha   = aB->folha;
 	int j;
-  
-	for(j=0; j < t-1; j++) 
-		novo_aB->chave[j] = aB->chave[j+t];
+	
+	for(j=0; j < t-1; j++) {
+		novo_aB->chave[j]->cod      = aB->chave[j+t]->cod; 
+		novo_aB->chave[j]->no->tipo = aB->chave[j+t]->no->tipo;
+		novo_aB->chave[j]->no->area = aB->chave[j+t]->no->area;
+		int i;
+		for(i=0;i<4;i++) novo_aB->chave[j]->no->nome[i] = aB->chave[j+t]->no->nome[i];
+		void *info_v;
+		if (aB->chave[j+t]->no->tipo == TRI) {
+			TTRI *info1   = (TTRI *) malloc (sizeof(TTRI));
+			TTRI *info2   = (TTRI *) aB->chave[j+t]->no->info;
+			info1->base   = info2->base;
+			info1->altura = info2->altura;
+			info_v = info1;
+		} else if (aB->chave[j+t]->no->tipo == RET) {
+			TRET *info1        = (TRET *) malloc (sizeof(TRET));
+			TRET *info2        = (TRET *) aB->chave[j+t]->no->info;
+			info1->largura     = info2->largura;
+			info1->comprimento = info2->comprimento;
+			info_v = info1;
+		} else if (aB->chave[j+t]->no->tipo == TRA) {
+			TTRA *info1   = (TTRA *) malloc (sizeof(TTRA));
+			TTRA *info2   = (TTRA *) aB->chave[j+t]->no->info;
+			info1->base1  = info2->base2;
+			info1->base1  = info2->base2;
+			info1->altura = info2->altura;
+			info_v = info1;
+		} else if (aB->chave[j+t]->no->tipo == CIR) {
+			TCIR *info1 = (TCIR *) malloc (sizeof(TCIR));
+			TCIR *info2 = (TCIR *) aB->chave[j+t]->no->info;
+			info1->raio = info2->raio;
+			info_v = info1;
+		} else if (aB->chave[j+t]->no->tipo == QUA) {
+			TQUA *info1 = (TQUA *) malloc (sizeof(TQUA));
+			TQUA *info2 = (TQUA *) aB->chave[j+t]->no->info;
+			info1->lado = info2->lado;
+			info_v = info1;
+		}
+		if (novo_aB->chave[j]->no->info) free(novo_aB->chave[j]->no->info);
+		novo_aB->chave[j]->no->info = info_v;
+	} 
   
 	if(!aB->folha) {
 		for (j = 0; j < t; j++){
@@ -1810,40 +1899,192 @@ TAB * dividir_aB (TAB *aB_aux, int cod, TAB* aB, int t) {
 			aB->filho[j+t] = NULL;
 		}
 	}
-  
+	
 	aB->nchaves = t-1;
-	for (j = aB_aux->nchaves; j >= cod; j--) 
+	for (j = aB_aux->nchaves; j >= idx; j--) 
 		aB_aux->filho[j+1] = aB_aux->filho[j];
+	
+	aB_aux->filho[idx] = novo_aB;
+	for (j = aB_aux->nchaves; j >= idx; j--) {
+		aB_aux->chave[j]->cod      = aB_aux->chave[j-1]->cod;
+		aB_aux->chave[j]->no->tipo = aB_aux->chave[j-1]->no->tipo;
+		aB_aux->chave[j]->no->area = aB_aux->chave[j-1]->no->area;
+		int i;
+		for(i=0;i<4;i++) aB_aux->chave[j]->no->nome[i] = aB_aux->chave[j-1]->no->nome[i];
+		void *info_v; 
+		if (aB_aux->chave[j-1]->no->tipo == TRI) {
+			TTRI *info1   = (TTRI *) malloc (sizeof(TTRI));
+			TTRI *info2   = (TTRI *) aB_aux->chave[j-1]->no->info;
+			info1->base   = info2->base;
+			info1->altura = info2->altura;
+			info_v = info1;
+		} else if (aB_aux->chave[j-1]->no->tipo == RET) {
+			TRET *info1        = (TRET *) malloc (sizeof(TRET));
+			TRET *info2        = (TRET *) aB_aux->chave[j-1]->no->info;
+			info1->largura     = info2->largura;
+			info1->comprimento = info2->comprimento;
+			info_v = info1;
+		} else if (aB_aux->chave[j-1]->no->tipo == TRA) {
+			TTRA *info1   = (TTRA *) malloc (sizeof(TTRA));
+			TTRA *info2   = (TTRA *) aB_aux->chave[j-1]->no->info;
+			info1->base1  = info2->base2;
+			info1->base1  = info2->base2;
+			info1->altura = info2->altura;
+			info_v = info1;
+		} else if (aB_aux->chave[j-1]->no->tipo == CIR) {
+			TCIR *info1 = (TCIR *) malloc (sizeof(TCIR));
+			TCIR *info2 = (TCIR *) aB_aux->chave[j-1]->no->info;
+			info1->raio = info2->raio;
+			info_v = info1;
+		} else if (aB_aux->chave[j-1]->no->tipo == QUA) {
+			TQUA *info1 = (TQUA *) malloc (sizeof(TQUA));
+			TQUA *info2 = (TQUA *) aB_aux->chave[j-1]->no->info;
+			info1->lado = info2->lado;
+			info_v = info1;
+		}
+		if (aB_aux->chave[j]->no->info) free(aB_aux->chave[j]->no->info);
+		aB_aux->chave[j]->no->info = info_v;
+	} 
   
-	aB_aux->filho[cod] = novo_aB;
-	for (j = aB_aux->nchaves; j >= cod; j--) 
-		aB_aux->chave[j] = aB_aux->chave[j-1];
-  
-	aB_aux->chave[cod-1] = aB->chave[t-1];
+	aB_aux->chave[idx-1]->cod      = aB->chave[t-1]->cod;
+	aB_aux->chave[idx-1]->no->tipo = aB->chave[t-1]->no->tipo;
+	aB_aux->chave[idx-1]->no->area = aB->chave[t-1]->no->area;
+	int i; 
+	for(i=0;i<4;i++) aB_aux->chave[idx-1]->no->nome[i] = aB->chave[t-1]->no->nome[i];
+	void *info_v; 
+	if (aB->chave[t-1]->no->tipo == TRI) {
+		TTRI *info1   = (TTRI *) malloc (sizeof(TTRI));
+		TTRI *info2   = (TTRI *) aB->chave[t-1]->no->info;
+		info1->base   = info2->base;
+		info1->altura = info2->altura;
+		info_v = info1;
+	} else if (aB->chave[t-1]->no->tipo == RET) {
+		TRET *info1        = (TRET *) malloc (sizeof(TRET));
+		TRET *info2        = (TRET *) aB->chave[t-1]->no->info;
+		info1->largura     = info2->largura;
+		info1->comprimento = info2->comprimento;
+		info_v = info1;
+	} else if (aB->chave[t-1]->no->tipo == TRA) {
+		TTRA *info1   = (TTRA *) malloc (sizeof(TTRA));
+		TTRA *info2   = (TTRA *) aB->chave[t-1]->no->info;
+		info1->base1  = info2->base2;
+		info1->base1  = info2->base2;
+		info1->altura = info2->altura;
+		info_v = info1;
+	} else if (aB->chave[t-1]->no->tipo == CIR) {
+		TCIR *info1 = (TCIR *) malloc (sizeof(TCIR));
+		TCIR *info2 = (TCIR *) aB->chave[t-1]->no->info;
+		info1->raio = info2->raio;
+		info_v = info1;
+	} else if (aB->chave[t-1]->no->tipo == QUA) {
+		TQUA *info1 = (TQUA *) malloc (sizeof(TQUA));
+		TQUA *info2 = (TQUA *) aB->chave[t-1]->no->info;
+		info1->lado = info2->lado;
+		info_v = info1;
+	} 
+	if (aB_aux->chave[idx-1]->no->info) free(aB_aux->chave[idx-1]->no->info); 
+	aB_aux->chave[idx-1]->no->info = info_v; 
+	
 	aB_aux->nchaves++;
 	return aB_aux;
 }
 
-TAB * inserir_n_compl_aB (TAB *aB, int cod, int t) {
+TAB * inserir_n_compl_aB (TAB *aB, TAG *ag, int t) {
   
 	int i = aB->nchaves-1;
 	  
-	if (aB->folha) {
-		while((i>=0) && (cod < aB->chave[i])) {
-			aB->chave[i+1] = aB->chave[i];
+	if (aB->folha) { 
+		while((i>=0) && (ag->cod < aB->chave[i]->cod)) {
+			aB->chave[i+1]->cod      = aB->chave[i]->cod;
+			aB->chave[i+1]->no->tipo = aB->chave[i]->no->tipo;
+			aB->chave[i+1]->no->area = aB->chave[i]->no->area;
+			int j;
+			for(j=0;j<4;j++) aB->chave[i+1]->no->nome[j] = aB->chave[t-1]->no->nome[j];
+			void *info_v;
+			if (aB->chave[i]->no->tipo == TRI) {
+				TTRI *info1   = (TTRI *) malloc (sizeof(TTRI));
+				TTRI *info2   = (TTRI *) aB->chave[i]->no->info;
+				info1->base   = info2->base;
+				info1->altura = info2->altura;
+				info_v = info1;
+			} else if (aB->chave[i]->no->tipo == RET) {
+				TRET *info1        = (TRET *) malloc (sizeof(TRET));
+				TRET *info2        = (TRET *) aB->chave[i]->no->info;
+				info1->largura     = info2->largura;
+				info1->comprimento = info2->comprimento;
+				info_v = info1;
+			} else if (aB->chave[i]->no->tipo == TRA) {
+				TTRA *info1   = (TTRA *) malloc (sizeof(TTRA));
+				TTRA *info2   = (TTRA *) aB->chave[i]->no->info;
+				info1->base1  = info2->base2;
+				info1->base1  = info2->base2;
+				info1->altura = info2->altura;
+				info_v = info1;
+			} else if (aB->chave[i]->no->tipo == CIR) {
+				TCIR *info1 = (TCIR *) malloc (sizeof(TCIR));
+				TCIR *info2 = (TCIR *) aB->chave[i]->no->info;
+				info1->raio = info2->raio;
+				info_v = info1;
+			} else if (aB->chave[i]->no->tipo == QUA) {
+				TQUA *info1 = (TQUA *) malloc (sizeof(TQUA));
+				TQUA *info2 = (TQUA *) aB->chave[i]->no->info;
+				info1->lado = info2->lado;
+				info_v = info1;
+			}
+			if (aB->chave[i+1]->no->info) free(aB->chave[i+1]->no->info);
+			aB->chave[i+1]->no->info = info_v;			
+						
 			i--;
-		}
-		aB->chave[i+1] = cod;
+		} 
+		aB->chave[i+1]->cod      = ag->cod;
+		aB->chave[i+1]->no->tipo = ag->no->tipo;
+		aB->chave[i+1]->no->area = ag->no->area;
+		int j; 
+		for(j=0;j<4;j++) aB->chave[i+1]->no->nome[j] = ag->no->nome[j];
+		void *info_v; 
+		if (ag->no->tipo == TRI) {
+			TTRI *info1   = (TTRI *) malloc (sizeof(TTRI));
+			TTRI *info2   = (TTRI *) ag->no->info;
+			info1->base   = info2->base;
+			info1->altura = info2->altura;
+			info_v = info1;
+		} else if (ag->no->tipo == RET) {
+			TRET *info1        = (TRET *) malloc (sizeof(TRET));
+			TRET *info2        = (TRET *) ag->no->info;
+			info1->largura     = info2->largura;
+			info1->comprimento = info2->comprimento;
+			info_v = info1;
+		} else if (ag->no->tipo == TRA) {
+			TTRA *info1   = (TTRA *) malloc (sizeof(TTRA));
+			TTRA *info2   = (TTRA *) ag->no->info;
+			info1->base1  = info2->base2;
+			info1->base1  = info2->base2;
+			info1->altura = info2->altura;
+			info_v = info1;
+		} else if (ag->no->tipo == CIR) {
+			TCIR *info1 = (TCIR *) malloc (sizeof(TCIR));
+			TCIR *info2 = (TCIR *) ag->no->info;
+			info1->raio = info2->raio;
+			info_v = info1;
+		} else if (ag->no->tipo == QUA) {
+			TQUA *info1 = (TQUA *) malloc (sizeof(TQUA));
+			TQUA *info2 = (TQUA *) ag->no->info;
+			info1->lado = info2->lado;
+			info_v = info1;
+		} 
+		if (aB->chave[i+1]->no->info) free(aB->chave[i+1]->no->info);
+		aB->chave[i+1]->no->info = info_v;
+		
 		aB->nchaves++;
 		return aB;
 	}
-	while((i>=0) && (cod < aB->chave[i])) i--;
+	while((i>=0) && (ag->cod < aB->chave[i]->cod)) i--;
 	i++;
 	if (aB->filho[i]->nchaves == (2*t-1)) {
 		aB = dividir_aB (aB, (i+1), aB->filho[i], t);
-		if(cod > aB->chave[i]) i++;
+		if(ag->cod > aB->chave[i]->cod) i++;
 	}
-	aB->filho[i] = inserir_n_compl_aB (aB->filho[i], cod, t);
+	aB->filho[i] = inserir_n_compl_aB (aB->filho[i], ag, t);
 	return aB;
 }
 
@@ -1854,7 +2095,7 @@ void imprimir_aB (TAB *aB, int andar) {
 		for (i=0; i <= aB->nchaves-1; i++) {
 			imprimir_aB (aB->filho[i],andar+1);
 			for (j=0; j <= andar; j++) printf("   ");
-			printf("%d\n", aB->chave[i]);
+			printf("%d\n", aB->chave[i]->cod);
 		}
 		imprimir_aB (aB->filho[i], andar+1);
 	}
