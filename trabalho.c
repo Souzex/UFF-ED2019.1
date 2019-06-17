@@ -1082,22 +1082,29 @@ int iniciar_menu (TAG **end_arv_g, TABB **end_arv_bb, TAB **end_arv_B) {
 			if (!arv_g) {printf ("Árvore genérica não existe!\n"); break;}
 			arv_bb = destruir_abb (arv_bb);
 			arv_bb = converter_abb (arv_bb, arv_g);
+			printf("\n\n");
 			imprimir_abb (arv_bb, 1);
+			*end_arv_bb = arv_bb;
 			break;
 		
 		case 8:
 			if (!arv_g) {printf ("Árvore genérica não existe!\n"); break;}
 			arv_B = destruir_aB (arv_B);
 			arv_B = converter_aB (arv_B, arv_g);
+			printf("\n\n");
 			imprimir_aB (arv_B, 0);
+			*end_arv_B = arv_B;
 			break;
 		
 		case 0:
 			resp_usu = 0;
 			printf ("Até mais!\n");
-			destruir_abb (arv_bb);
-			destruir_aB (arv_B);
+			printf("\n****** ÁRV. GENÉR. ******\n\n");
 			destruir_arvore (arv_g);
+			printf("\n****** ÁRV. AVL ******\n\n");
+			destruir_abb (arv_bb);
+			printf("\n******  ÁRV. B  ******\n\n");
+			destruir_aB (arv_B);
 			break;
 		
 		default:
@@ -1540,18 +1547,158 @@ void destruir_arvore (TAG *ag) {
 				aux = temp;
 			}
 		}
-/*
-		if (ag->no->tipo == TRI) {TTRI *info = (TTRI *) ag->no->info; free (info);}
-		if (ag->no->tipo == RET) {TRET *info = (TRET *) ag->no->info; free (info);}
-		if (ag->no->tipo == TRA) {TTRA *info = (TTRA *) ag->no->info; free (info);}
-		if (ag->no->tipo == CIR) {TCIR *info = (TCIR *) ag->no->info; free (info);}
-		if (ag->no->tipo == QUA) {TQUA *info = (TQUA *) ag->no->info; free (info);}
-*/	
-		printf("Liberando %d...\n", ag->cod);
+		printf("Arv. Gen.: Liberando %d...\n", ag->cod);
 		free (ag->no->info);
 		free (ag->no);
 		free (ag);
 	}
+}
+
+TABB * destruir_abb (TABB *abb) {
+	if (abb) {
+        destruir_abb (abb->esq);
+        destruir_abb (abb->dir);
+        printf("AVL: Liberando %d...\n", abb->cod);
+		free(abb->no->info);
+		free(abb->no);
+		free(abb);
+		return NULL;
+	}
+}
+
+TABB * converter_abb (TABB *abb, TAG *ag) {
+	
+	TAG *aux = NULL;
+	if (ag){
+		if (ag->filho) {
+			aux = ag->filho;
+			while (aux) {
+				abb = converter_abb(abb, aux);
+				aux = aux->irmao;
+			}
+		}
+		return inserir_abb(abb, ag);
+	} else
+		return NULL;	
+}
+ 
+TABB * inserir_abb (TABB *abb, TAG *ag) {
+    
+	if (!abb) {
+        abb = (TABB *) malloc(sizeof(TABB));
+        abb->cod = ag->cod;
+        abb->alt = 0;
+        abb->esq = NULL;
+		abb->dir = NULL;
+		
+		TNO *node = (TNO *) malloc(sizeof(TNO));
+		node->tipo = ag->no->tipo;
+		node->area = ag->no->area;
+		int i;
+		for (i=0;i<4;i++) node->nome[i] = ag->no->nome[i];
+		void *info_v;
+		if (ag->no->tipo == TRI) {
+			TTRI *info1   = (TTRI *) malloc (sizeof(TTRI));
+			TTRI *info2   = (TTRI *) ag->no->info;
+			info1->base   = info2->base;
+			info1->altura = info2->altura;
+			info_v = info1;
+		} else if (ag->no->tipo == RET) {
+			TRET *info1        = (TRET *) malloc (sizeof(TRET));
+			TRET *info2        = (TRET *) ag->no->info;
+			info1->largura     = info2->largura;
+			info1->comprimento = info2->comprimento;
+			info_v = info1;
+		} else if (ag->no->tipo == TRA) {
+			TTRA *info1   = (TTRA *) malloc (sizeof(TTRA));
+			TTRA *info2   = (TTRA *) ag->no->info;
+			info1->base1  = info2->base2;
+			info1->base1  = info2->base2;
+			info1->altura = info2->altura;
+			info_v = info1;
+		} else if (ag->no->tipo == CIR) {
+			TCIR *info1 = (TCIR *) malloc (sizeof(TCIR));
+			TCIR *info2 = (TCIR *) ag->no->info;
+			info1->raio = info2->raio;
+			info_v = info1;
+		} else if (ag->no->tipo == QUA) {
+			TQUA *info1 = (TQUA *) malloc (sizeof(TQUA));
+			TQUA *info2 = (TQUA *) ag->no->info;
+			info1->lado = info2->lado;
+			info_v = info1;
+		}
+		node->info = info_v;			
+		abb->no = node;
+		
+    } else if (ag->cod < abb->cod) {
+		abb->esq = inserir_abb(abb->esq,ag);
+        if (calcular_altura_abb(abb->esq) - calcular_altura_abb(abb->dir) == 2)
+            if (ag->cod < abb->esq->cod) abb = rotacionar_dir_abb(abb);
+            else                         abb = rotacionar_esq_dir_abb(abb);
+    } else if (ag->cod > abb->cod) {
+        abb->dir = inserir_abb(abb->dir,ag);
+        if (calcular_altura_abb(abb->dir) - calcular_altura_abb(abb->esq) == 2)
+			if (ag->cod > abb->dir->cod) abb = rotacionar_esq_abb(abb);
+            else                         abb = rotacionar_dir_esq_abb(abb);
+    }
+    abb->alt = maior_int(calcular_altura_abb(abb->esq),calcular_altura_abb(abb->dir)) + 1;
+    return abb;
+}
+
+int calcular_altura_abb (TABB *abb) {
+    
+	if(!abb) return -1;
+    return abb->alt;
+}
+
+TABB * rotacionar_dir_abb (TABB *abb) {
+    
+	TABB *aux = NULL;
+    aux = abb->esq;
+    abb->esq = aux->dir;
+    aux->dir = abb;
+    abb->alt = maior_int(calcular_altura_abb(abb->esq),calcular_altura_abb(abb->dir)) + 1;
+    aux->alt = maior_int(calcular_altura_abb(aux->esq),abb->alt) + 1;
+    return aux;
+}
+
+TABB * rotacionar_esq_abb (TABB *abb) {
+    
+	TABB *aux = NULL;;
+    aux = abb->dir;
+    abb->dir = aux->esq;
+    aux->esq = abb;
+    abb->alt = maior_int(calcular_altura_abb(abb->esq),calcular_altura_abb(abb->dir)) + 1; 
+    aux->alt = maior_int(calcular_altura_abb(aux->dir),abb->alt) + 1;
+    return aux;  
+}
+
+TABB * rotacionar_esq_dir_abb (TABB *abb) {
+    
+	abb->esq = rotacionar_esq_abb(abb->esq);
+    return rotacionar_dir_abb(abb);
+}
+
+
+TABB * rotacionar_dir_esq_abb (TABB *abb) {
+    
+	abb->dir = rotacionar_dir_abb(abb->dir);
+    return rotacionar_esq_abb(abb);
+}
+
+void imprimir_abb (TABB *abb, int andar) {
+	
+	if(abb) {
+		int j;
+		imprimir_abb(abb->esq,andar+1);
+		for (j=0; j <= andar; j++) printf("   ");
+		printf("%d\n", abb->cod);
+		imprimir_abb(abb->dir,andar+1);
+	}	
+}
+
+int maior_int (int l, int r) {
+	return l > r ? l: r;
 }
 
 TAB * destruir_aB (TAB *aB) {
@@ -1561,7 +1708,12 @@ TAB * destruir_aB (TAB *aB) {
 	if (!aB->folha)
       for(i = 0; i <= aB->nchaves; i++) 
 		  destruir_aB (aB->filho[i]);
-    free(aB->chave);
+    
+	printf("Arv. B: Liberando chaves ");
+	for(i = 0; i < aB->nchaves; i++)
+		printf("%d... ", aB->chave[i]);
+	printf("\n");
+	free(aB->chave);
     free(aB->filho);
     free(aB);
     return NULL;
@@ -1708,109 +1860,5 @@ void imprimir_aB (TAB *aB, int andar) {
 	}
 }	
 
-TABB * destruir_abb (TABB *abb) {
-	
-	if (abb) {
-        destruir_abb (abb->esq);
-        destruir_abb (abb->dir);
-        free (abb);
-		return NULL;
-	}
-}
 
-TABB * converter_abb (TABB *abb, TAG *ag) {
-	
-	TAG *aux = NULL;
-	if (ag){
-		if (ag->filho) {
-			aux = ag->filho;
-			while (aux) {
-				abb = converter_abb(abb, aux);
-				aux = aux->irmao;
-			}
-		}
-		return inserir_abb(abb, ag);
-	} else
-		return NULL;	
-}
- 
-TABB * inserir_abb (TABB *abb, TAG *ag) {
-    
-	if (!abb) {
-        abb = (TABB *) malloc(sizeof(TABB));
-        abb->cod = ag->cod;
-        abb->no  = ag->no;
-		abb->alt = 0;
-        abb->esq = NULL;
-		abb->dir = NULL;
-    } else if (ag->cod < abb->cod) {
-		abb->esq = inserir_abb(abb->esq,ag);
-        if (calcular_altura_abb(abb->esq) - calcular_altura_abb(abb->dir) == 2)
-            if (ag->cod < abb->esq->cod) abb = rotacionar_dir_abb(abb);
-            else                         abb = rotacionar_esq_dir_abb(abb);
-    } else if (ag->cod > abb->cod) {
-        abb->dir = inserir_abb(abb->dir,ag);
-        if (calcular_altura_abb(abb->dir) - calcular_altura_abb(abb->esq) == 2)
-			if (ag->cod > abb->dir->cod) abb = rotacionar_esq_abb(abb);
-            else                         abb = rotacionar_dir_esq_abb(abb);
-    }
-    abb->alt = maior_int(calcular_altura_abb(abb->esq),calcular_altura_abb(abb->dir)) + 1;
-    return abb;
-}
-
-int calcular_altura_abb (TABB *abb) {
-    
-	if(!abb) return -1;
-    return abb->alt;
-}
-
-TABB * rotacionar_dir_abb (TABB *abb) {
-    
-	TABB *aux = NULL;
-    aux = abb->esq;
-    abb->esq = aux->dir;
-    aux->dir = abb;
-    abb->alt = maior_int(calcular_altura_abb(abb->esq),calcular_altura_abb(abb->dir)) + 1;
-    aux->alt = maior_int(calcular_altura_abb(aux->esq),abb->alt) + 1;
-    return aux;
-}
-
-TABB * rotacionar_esq_abb (TABB *abb) {
-    
-	TABB *aux = NULL;;
-    aux = abb->dir;
-    abb->dir = aux->esq;
-    aux->esq = abb;
-    abb->alt = maior_int(calcular_altura_abb(abb->esq),calcular_altura_abb(abb->dir)) + 1; 
-    aux->alt = maior_int(calcular_altura_abb(aux->dir),abb->alt) + 1;
-    return aux;  
-}
-
-TABB * rotacionar_esq_dir_abb (TABB *abb) {
-    
-	abb->esq = rotacionar_esq_abb(abb->esq);
-    return rotacionar_dir_abb(abb);
-}
-
-
-TABB * rotacionar_dir_esq_abb (TABB *abb) {
-    
-	abb->dir = rotacionar_dir_abb(abb->dir);
-    return rotacionar_esq_abb(abb);
-}
-
-void imprimir_abb (TABB *abb, int andar) {
-	
-	if(abb) {
-		int j;
-		imprimir_abb(abb->esq,andar+1);
-		for (j=0; j <= andar; j++) printf("   ");
-		printf("%d\n", abb->cod);
-		imprimir_abb(abb->dir,andar+1);
-	}	
-}
-
-int maior_int (int l, int r) {
-	return l > r ? l: r;
-}
 
